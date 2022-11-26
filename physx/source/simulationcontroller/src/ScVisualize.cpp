@@ -38,6 +38,7 @@ using namespace Sc;
 
 // PT: Sc-level visualization code has been moved to this dedicated file (like we did in NpDebugViz.cpp)
 
+#if PX_ENABLE_DEBUG_VISUALIZATION
 static void visualize(const ConstraintSim& sim, Cm::ConstraintImmediateVisualizer& viz, PxU32 flags, const PxTransform& idt)
 {
 	ConstraintCore& core = sim.getCore();
@@ -54,6 +55,7 @@ static void visualize(const ConstraintSim& sim, Cm::ConstraintImmediateVisualize
 
 	core.getVisualize()(viz, llc.constantBlock, t0, t1, flags);
 }
+#endif
 
 void Sc::ShapeInteraction::visualize(PxRenderOutput& out, PxsContactManagerOutputIterator& outputs,
 									float scale, float contactImpulse, float contactNormal, float contactError, float contactPoint,

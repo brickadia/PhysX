@@ -439,7 +439,7 @@ struct ExtMultiQueryCallback : public PrunerRaycastCallback, public PrunerOverla
 	}
 
 	bool processTouchHit(const HitType& hit, PxReal& aDist)
-#if PX_WINDOWS_FAMILY
+#if PX_WINDOWS_FAMILY && __MSVC__
 		PX_RESTRICT
 #endif
 	{
@@ -499,7 +499,7 @@ struct ExtMultiQueryCallback : public PrunerRaycastCallback, public PrunerOverla
 
 	template<const bool isCached>	// is this call coming as a callback from the pruner or a single item cached callback?
 	bool _invoke(PxReal& aDist, PxU32 primIndex, const PrunerPayload* payloads, const PxTransform* transforms, const PxTransform* compoundPose)
-#if PX_WINDOWS_FAMILY
+#if PX_WINDOWS_FAMILY && __MSVC__
 		PX_RESTRICT
 #endif
 	{
