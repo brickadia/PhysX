@@ -21,15 +21,24 @@ if not x%str1:.user=%==x%str1% (
   call "%~dp0buildtools\packman\packman.cmd" pull "%~dp0dependencies.xml" --platform %1
 )
 
-for /f "usebackq tokens=*" %%i in (`"%PM_vswhere_PATH%\VsWhere.exe  -version [15.0,16.0) -latest -property installationPath"`) do (
+pushd "C:\Program Files (x86)\Microsoft Visual Studio\Installer"
+
+for /f "usebackq tokens=*" %%i in (`"vswhere.exe  -version [15.0,16.0) -latest -property installationPath"`) do (
 	set Install2017Dir=%%i
 	set VS150PATH="%%i"
 )
 
-for /f "usebackq tokens=*" %%i in (`"%PM_vswhere_PATH%\VsWhere.exe  -version [16.0,17.0) -latest -property installationPath"`) do (
+for /f "usebackq tokens=*" %%i in (`"vswhere.exe  -version [16.0,17.0) -latest -property installationPath"`) do (
   set Install2019Dir=%%i
 	set VS160PATH="%%i"
 )
+
+for /f "usebackq tokens=*" %%i in (`"vswhere.exe  -version [17.0,18.0) -latest -property installationPath"`) do (
+  set Install2022Dir=%%i
+	set VS170PATH="%%i"
+)
+
+popd
 
 if exist "%Install2017Dir%\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt" (
   pushd "%Install2017Dir%\VC\Auxiliary\Build\"
@@ -50,6 +59,18 @@ if exist "%Install2019Dir%\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.t
 	if not %%x=="" (
 	  rem Example hardcodes x64 as the host and target architecture, but you could parse it from arguments
 	  set VS160CLPATH="%Install2019Dir%\VC\Tools\MSVC\%%x\bin\HostX64\x64\cl.exe"
+	)
+  )
+  popd
+)
+
+if exist "%Install2022Dir%\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt" (
+  pushd "%Install2022Dir%\VC\Auxiliary\Build\"
+  set /p Version=<Microsoft.VCToolsVersion.default.txt
+  for /f "delims=" %%x in (Microsoft.VCToolsVersion.default.txt) do (
+	if not %%x=="" (
+	  rem Example hardcodes x64 as the host and target architecture, but you could parse it from arguments
+	  set VS170CLPATH="%Install2022Dir%\VC\Tools\MSVC\%%x\bin\HostX64\x64\cl.exe"
 	)
   )
   popd
