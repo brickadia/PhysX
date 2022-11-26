@@ -4,19 +4,19 @@
 	</dependency>
 
 	<dependency name="vswhere">
-		<package name="VsWhere" version="2.7.3111.17308_1.0"  platforms="vc15win64  vc16win64 vc17win64 linux-crosscompile linux-aarch64-crosscompile "/>
+		<package name="VsWhere" version="2.7.3111.17308_1.0"  platforms="vc15win64  vc16win64 vc17win64 vc17win64-brickadia linux-crosscompile linux-aarch64-crosscompile "/>
 	</dependency>
 
 	<dependency name="PhysXDevice">
-		<package name="PhysXDevice" version="18.12.7.6"  platforms="vc15win64  vc16win64 vc17win64"/>
+		<package name="PhysXDevice" version="18.12.7.6"  platforms="vc15win64  vc16win64 vc17win64 vc17win64-brickadia"/>
 	</dependency>
 
 	<dependency name="freeglut">
-		<package name="freeglut-windows" version="3.4_1.1"  platforms="vc15win64  vc16win64 vc17win64"/>
+		<package name="freeglut-windows" version="3.4_1.1"  platforms="vc15win64  vc16win64 vc17win64 vc17win64-brickadia"/>
 	</dependency>
 
 	<dependency name="PhysXGpu">
-		<package name="PhysXGpu" version="5.4.2.e5f54faf-release-106.1-windows-public"  platforms="vc15win64 vc16win64 vc17win64"/>
+		<package name="PhysXGpu" version="5.4.2.e5f54faf-release-106.1-windows-public"  platforms="vc15win64 vc16win64 vc17win64 vc17win64-brickadia"/>
 		<package name="PhysXGpu" version="5.4.2.e5f54faf-release-106.1-linux-x86_64-public"  platforms="linux"/>
 		<package name="PhysXGpu" version="5.4.2.e5f54faf-release-106.1-linux-aarch64-public"  platforms="linux-aarch64"/>
 	</dependency>
