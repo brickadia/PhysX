@@ -461,46 +461,46 @@ class PxHashBase : private PxAllocator
 			}
 		}
 
-		PX_INLINE void check() const
+		PX_INLINE void checkHash() const
 		{
 			PX_ASSERT(mTimestamp == mBase.mTimestamp);
 		}
 		PX_INLINE const Entry& operator*() const
 		{
-			check();
+			checkHash();
 			return mBase.mEntries[mEntry];
 		}
 		PX_INLINE Entry& operator*()
 		{
-			check();
+			checkHash();
 			return mBase.mEntries[mEntry];
 		}
 		PX_INLINE const Entry* operator->() const
 		{
-			check();
+			checkHash();
 			return mBase.mEntries + mEntry;
 		}
 		PX_INLINE Entry* operator->()
 		{
-			check();
+			checkHash();
 			return mBase.mEntries + mEntry;
 		}
 		PX_INLINE Iter operator++()
 		{
-			check();
+			checkHash();
 			advance();
 			return *this;
 		}
 		PX_INLINE Iter operator++(int)
 		{
-			check();
+			checkHash();
 			Iter i = *this;
 			advance();
 			return i;
 		}
 		PX_INLINE bool done() const
 		{
-			check();
+			checkHash();
 			return mEntry == mBase.EOL;
 		}
 
