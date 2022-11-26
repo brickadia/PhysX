@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<preset name="linux-crosscompile-brickadia" comment="Linux cross compilation preset, without GPU support (for Brickadia)">
+  <platform targetPlatform="linux" compiler="clang-crosscompile" />
+  <CMakeSwitches>
+    <cmakeSwitch name="PX_BUILDSNIPPETS" value="False" comment="Generate the snippets" />
+    <cmakeSwitch name="PX_BUILDPVDRUNTIME" value="False" comment="Generate the OmniPVD project" />
+    <cmakeSwitch name="PX_GENERATE_STATIC_LIBRARIES" value="True" comment="Generate static libs" />
+    <cmakeSwitch name="PX_FLOAT_POINT_PRECISE_MATH" value="True" comment="Float point precise math" />
+    <cmakeSwitch name="NV_FORCE_64BIT_SUFFIX" value="True" comment="Force a 64 bit suffix for platforms that don't register properly." />
+    <cmakeSwitch name="NV_FORCE_32BIT_SUFFIX" value="False" comment="Force a 32 bit suffix for platforms that don't register properly." />
+  </CMakeSwitches>
+  <CMakeParams>
+    <cmakeParam name="CMAKE_INSTALL_PREFIX" value="install/linux-crosscompile/PhysX" comment="Install path relative to PhysX SDK root" />
+  </CMakeParams>
+</preset>

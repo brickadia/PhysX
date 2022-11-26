@@ -25,12 +25,14 @@
 ## Copyright (c) 2008-2024 NVIDIA Corporation. All rights reserved.
 
 IF(NOT $ENV{PM_PACKAGES_ROOT} EQUAL "")
+	INCLUDE(CMakeForceCompiler)
+
 	# See https://stackoverflow.com/a/53635241 - CMake needs this for cross-compiling
 	# see also: https://cmake.org/cmake/help/latest/module/CMakeForceCompiler.html
 	# and https://cmake.org/cmake/help/latest/variable/CMAKE_TRY_COMPILE_TARGET_TYPE.html
 	SET(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
 
-	SET(LINUX_ROOT $ENV{PM_CLANGCROSSCOMPILE_PATH}/x86_64-unknown-linux-gnu)
+	SET(LINUX_ROOT "$ENV{LINUX_MULTIARCH_ROOT}/x86_64-unknown-linux-gnu")
 	STRING(REGEX REPLACE "\\\\" "/" LINUX_ROOT ${LINUX_ROOT})
 
 	MESSAGE(STATUS "LINUX_ROOT is '${LINUX_ROOT}'")
@@ -47,13 +49,24 @@ IF(NOT $ENV{PM_PACKAGES_ROOT} EQUAL "")
 	SET(CMAKE_LIBRARY_ARCHITECTURE ${ARCHITECTURE_TRIPLE})
 
 	# specify the cross compiler
+	CMAKE_FORCE_C_COMPILER ("${CMAKE_SYSROOT}/bin/clang.exe" Clang)	
 	SET(CMAKE_C_COMPILER   ${CMAKE_SYSROOT}/bin/clang.exe)
 	SET(CMAKE_C_COMPILER_TARGET ${ARCHITECTURE_TRIPLE})
+	SET(CMAKE_C_FLAGS   "-target ${ARCHITECTURE_TRIPLE} --sysroot ${LINUX_ROOT} ")
 
+	CMAKE_FORCE_CXX_COMPILER ("${CMAKE_SYSROOT}/bin/clang++.exe" Clang)
 	SET(CMAKE_CXX_COMPILER   ${CMAKE_SYSROOT}/bin/clang++.exe)
 	SET(CMAKE_CXX_COMPILER_TARGET ${ARCHITECTURE_TRIPLE})
+	SET(CMAKE_CXX_FLAGS   "-target ${ARCHITECTURE_TRIPLE} --sysroot ${LINUX_ROOT} ")
 
 	SET(CMAKE_FIND_ROOT_PATH  ${LINUX_ROOT})
+
+	# unreal custom libc++ stuff
+	SET(CMAKE_CXX_FLAGS "-I $ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/include -I $ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/include/c++/v1")
+	SET(UE_LINKER_FLAGS "-stdlib=libc++ -nodefaultlibs -Wl,--build-id -L $ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/ $ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/libc++.a $ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/libc++abi.a -lc++ -lc++abi -lm -lc -lpthread -lgcc_s -lgcc")
+	SET(CMAKE_EXE_LINKER_FLAGS ${UE_LINKER_FLAGS})
+	SET(CAMKE_MODULE_LINKER_FLAGS ${UE_LINKER_FLAGS})
+	SET(CMAKE_SHARED_LINKER_FLAGS ${UE_LINKER_FLAGS})
 ELSE()
 	MESSAGE("PM_PACKAGES_ROOT  variable not defined!")
 ENDIF()
