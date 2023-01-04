@@ -2,4 +2,7 @@ bin/
 compiler/linux-*
 compiler/vc*
 include/PxConfig.h
-packages/
+packages/*
+!packages/chk/
+packages/chk/*
+!packages/chk/CMakeModules/
