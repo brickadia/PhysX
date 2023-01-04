@@ -3078,7 +3078,7 @@ PX_FORCE_INLINE VecU16V V4U16LoadUnaligned(VecU16V* addr)
 {
 	return *addr;
 }
-
+/*
 // unsigned compares are not supported on x86
 PX_FORCE_INLINE VecU16V V4U16CompareGt(VecU16V a, VecU16V b)
 {
@@ -3095,7 +3095,7 @@ PX_FORCE_INLINE VecU16V V4U16CompareGt(VecU16V a, VecU16V b)
 	result.m128_u16[7] = PxU16((a).m128_u16[7] > (b).m128_u16[7]);
 	return result;
 }
-
+*/
 PX_FORCE_INLINE VecU16V V4I16CompareGt(VecU16V a, VecU16V b)
 {
 	return internalWindowsSimd::m128_I2F(
@@ -3104,7 +3104,8 @@ PX_FORCE_INLINE VecU16V V4I16CompareGt(VecU16V a, VecU16V b)
 
 PX_FORCE_INLINE Vec4V Vec4V_From_VecU32V(VecU32V a)
 {
-	Vec4V result = V4LoadXYZW(PxF32(a.m128_u32[0]), PxF32(a.m128_u32[1]), PxF32(a.m128_u32[2]), PxF32(a.m128_u32[3]));
+	PxF32* AsFloat = (PxF32*)&a;
+	Vec4V result = V4LoadXYZW(AsFloat[0], AsFloat[1], AsFloat[2], AsFloat[3]);
 	return result;
 }
 
@@ -3155,10 +3156,11 @@ PX_FORCE_INLINE Vec4V V4SplatElement(Vec4V a)
 PX_FORCE_INLINE VecU32V U4LoadXYZW(PxU32 x, PxU32 y, PxU32 z, PxU32 w)
 {
 	VecU32V result;
-	result.m128_u32[0] = x;
-	result.m128_u32[1] = y;
-	result.m128_u32[2] = z;
-	result.m128_u32[3] = w;
+	PxU32* AsInt = (PxU32*)&result;
+	AsInt[0] = x;
+	AsInt[1] = y;
+	AsInt[2] = z;
+	AsInt[3] = w;
 	return result;
 }
 
