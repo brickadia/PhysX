@@ -227,7 +227,7 @@ struct GeomQueryAny
 			// compute the scene geometry bounds
 			// PT: TODO: avoid recomputing the bounds here
 			Gu::computeBounds(b1, sceneGeom, pose, 0.0f, 1.0f);
-			const PxVec3 combExt = (b0.getExtents() + b1.getExtents())*1.01f;
+			const PxVec3 combExt = b0.getExtents() + b1.getExtents() + b0.getExtents().minimum(b1.getExtents()) * 0.02f;
 
 			PxF32 tnear, tfar;
 			if(!intersectRayAABB2(-combExt, combExt, b0.getCenter() - b1.getCenter(), input.getDir(), shrunkMaxDistance, tnear, tfar)) // returns (tnear<tfar)
