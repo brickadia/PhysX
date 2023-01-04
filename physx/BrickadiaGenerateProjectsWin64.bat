@@ -36,11 +36,3 @@ if not %ERRORLEVEL% == 0 (
 	echo Aborting script due to error.
 	exit /b 1
 )
-
-:: Generate linux project
-::call "generate_projects.bat" linux-crosscompile-brickadia
-
-if not %ERRORLEVEL% == 0 (
-	echo Aborting script due to error.
-	exit /b 1
-)
