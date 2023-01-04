@@ -57,6 +57,7 @@ namespace physx
 			PX_CUDA_INLINE	void				reset()
 												{
 													mAggregate = PX_INVALID_U32;
+													mIndexInAggregate = PX_INVALID_U32;
 													mUserData = NULL;
 												}
 
@@ -107,6 +108,9 @@ namespace physx
 			PX_CUDA_INLINE	AggregateHandle		getAggregateOwner()	const { return mAggregate >> 1; }
 			PX_CUDA_INLINE	AggregateHandle		getAggregate()		const { return mAggregate >> 1; }
 
+			PX_FORCE_INLINE void setIndexInAggregate(PxU32 index)	{ mIndexInAggregate = index; }
+			PX_FORCE_INLINE PxU32 getIndexInAggregate()	const		{ return mIndexInAggregate; }
+
 		private:
 							void*				mUserData;
 			// PT: TODO: consider moving this to a separate array, which wouldn't be allocated at all for people not using aggregates.
@@ -114,6 +118,7 @@ namespace physx
 			// aggregate == PX_INVALID_U32 => single actor
 			// aggregate != PX_INVALID_U32 => aggregate index<<1|LSB. LSB==1 for aggregates, LSB==0 for aggregated actors.
 							AggregateHandle		mAggregate;
+							PxU32				mIndexInAggregate;
 		};
 
 	}

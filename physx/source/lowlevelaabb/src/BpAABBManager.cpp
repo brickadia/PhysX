@@ -103,7 +103,8 @@ static PX_FORCE_INLINE bool shouldPairBeDeleted(const PxPinnedArray<Bp::FilterGr
 
 						BoundsIndex						mIndex;
 		private:
-						PxArray<BoundsIndex>			mAggregated;	// PT: TODO: replace with linked list?
+						PxArray<BoundsIndex>			mAggregated;
+						PxArray<PxU32>					mIndirection;
 		public:
 						PersistentSelfCollisionPairs*	mSelfCollisionPairs;
 						PxU32							mDirtyIndex;	// PT: index in mDirtyAggregates
@@ -116,7 +117,13 @@ static PX_FORCE_INLINE bool shouldPairBeDeleted(const PxPinnedArray<Bp::FilterGr
 		PX_FORCE_INLINE	BoundsIndex						getAggregated(PxU32 i)	const	{ return mAggregated[i];						}
 		PX_FORCE_INLINE	const BoundsIndex*				getIndices()			const	{ return mAggregated.begin();					}
 		PX_FORCE_INLINE	void							addAggregated(BoundsIndex i)	{ mAggregated.pushBack(i);						}
-		PX_FORCE_INLINE	bool							removeAggregated(BoundsIndex i)	{ return mAggregated.findAndReplaceWithLast(i);	}	// PT: TODO: optimize?
+		PX_FORCE_INLINE	void							removeAggregated(BoundsIndex i)	{ mAggregated.replaceWithLast(i);				}
+
+		PX_FORCE_INLINE	BoundsIndex						getIndirection(PxU32 i)	const	{ return mIndirection[i];						}
+		PX_FORCE_INLINE	void							setIndirection(PxU32 i, PxU32 x){ mIndirection[i] = x;							}
+		PX_FORCE_INLINE	void							addIndirection(PxU32 i)			{ mIndirection.pushBack(i);						}
+		PX_FORCE_INLINE	void							removeIndirection(PxU32 i)		{ mIndirection.replaceWithLast(i);				}
+
 		PX_FORCE_INLINE	const PxBounds3&				getMergedBounds()		const	{ return mBounds;								}
 
 		PX_FORCE_INLINE	void							resetDirtyState()				{ mDirtyIndex = PX_INVALID_U32;				}
@@ -914,6 +921,14 @@ void Aggregate::sortBounds()
 				sortedBoundsX[i] = mInflatedBoundsX[sortedIndex];
 				sortedBoundsYZ[i] = mInflatedBoundsYZ[sortedIndex];
 			}
+			for(PxU32 i=0;i<nbObjects;i++)
+			{
+				copy[Sorted[i]] = i;
+			}
+			for(PxU32 i=0;i<nbObjects;i++)
+			{
+				mIndirection[i] = copy[mIndirection[i]];
+			}
 			for(PxU32 i=0;i<NB_SENTINELS;i++)
 				sortedBoundsX[nbObjects+i].initSentinel();
 			mAllocatedSize = nbObjects;
@@ -1139,7 +1154,10 @@ bool AABBManager::addBounds(BoundsIndex index, PxReal contactDistance, Bp::Filte
 			if(!aggregate->getNbAggregated())
 				addBPEntry(aggregate->mIndex);
 
+			PxU32 indexInAggregate = aggregate->getNbAggregated();
 			aggregate->addAggregated(index);
+			aggregate->addIndirection(indexInAggregate);
+			mVolumeData[index].setIndexInAggregate(indexInAggregate);
 
 			// PT: new actor added to aggregate => mark dirty to recompute bounds later
 			aggregate->markAsDirty(mDirtyAggregates);
@@ -1165,8 +1183,23 @@ bool AABBManager::removeBounds(BoundsIndex index)
 
 		const AggregateHandle aggregateHandle = mVolumeData[index].getAggregateOwner();
 		Aggregate* aggregate = getAggregateFromHandle(aggregateHandle);
-		bool status = aggregate->removeAggregated(index);
-		(void)status;
+
+		PxU32 indexInAggregate = mVolumeData[index].getIndexInAggregate();
+		PxU32 indirect = aggregate->getIndirection(indexInAggregate);
+		aggregate->removeAggregated(indirect);
+
+		if (indirect < aggregate->getNbAggregated())
+		{
+			aggregate->setIndirection(mVolumeData[aggregate->getAggregated(indirect)].getIndexInAggregate(), indirect);
+		}
+
+		aggregate->removeIndirection(indexInAggregate);
+
+		if (indexInAggregate < aggregate->getNbAggregated())
+		{
+			mVolumeData[aggregate->getAggregated(aggregate->getIndirection(indexInAggregate))].setIndexInAggregate(indexInAggregate);
+		}
+
 //		PX_ASSERT(status);	// PT: can be false when >128 shapes
 
 		// PT: remove empty aggregates, otherwise the BP will crash with empty bounds
