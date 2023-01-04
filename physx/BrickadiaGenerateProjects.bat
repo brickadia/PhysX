@@ -21,8 +21,16 @@ if not exist "%VisualStudioLocation%" (
 :: Prepare
 set PM_PACKAGES_ROOT=%~dp0packages
 
-:: Generate windows project
+:: Generate windows project (static)
 call "generate_projects.bat" vc17win64-brickadia
+
+if not %ERRORLEVEL% == 0 (
+	echo Aborting script due to error.
+	exit /b 1
+)
+
+:: Generate windows project (dynamic)
+call "generate_projects.bat" vc17win64-brickadia-dynamic
 
 if not %ERRORLEVEL% == 0 (
 	echo Aborting script due to error.
