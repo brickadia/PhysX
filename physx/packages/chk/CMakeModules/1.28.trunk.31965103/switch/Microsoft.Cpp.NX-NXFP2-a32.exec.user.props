@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup Label="Configuration">
+		<NXTargetPlatform>NX-NXFP2-a32</NXTargetPlatform>
+		<NintendoSdkRoot>$(NINTENDO_SDK_ROOT)\</NintendoSdkRoot>
+		<NXToolchainDir>$(NINTENDO_SDK_ROOT)/Compilers/NX</NXToolchainDir>
+		<DynamicSymbolList>$(NINTENDO_SDK_ROOT)/Resources/SpecFiles/ExportDynamicSymbol.lst</DynamicSymbolList>
+	</PropertyGroup>
+	<ItemDefinitionGroup>
+	    	<ClCompile>
+	    		<ObjectFileName>$(IntDir)%(FileName).o</ObjectFileName>
+	    		<MultiProcessorCompilation>true</MultiProcessorCompilation>
+		</ClCompile>
+		<Link>
+			<AdditionalOptions>-Wl,-pie -Wl,--export-dynamic</AdditionalOptions>
+			<StackSize>0x40000</StackSize>
+			<LinkerScript>$(NINTENDO_SDK_ROOT)/Resources/SpecFiles/Application.arm.ilp32.ldscript</LinkerScript>
+			<FinalizeDescSource>$(NINTENDO_SDK_ROOT)/Resources/SpecFiles/Application.desc</FinalizeDescSource>
+			<FinalizeMetaSource>$(NINTENDO_SDK_ROOT)/Resources/SpecFiles/Application.arm.ilp32.nmeta</FinalizeMetaSource>
+			<SubSystem>Console</SubSystem>
+		</Link>		
+	</ItemDefinitionGroup>
+</Project>

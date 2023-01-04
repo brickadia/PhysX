@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<PropertyGroup Label="Configuration">
+		<NXTargetPlatform>NX-NXFP2-a64</NXTargetPlatform>
+		<NintendoSdkRoot>$(NINTENDO_SDK_ROOT)\</NintendoSdkRoot>
+		<NXToolchainDir>$(NINTENDO_SDK_ROOT)/Compilers/NX</NXToolchainDir>
+	</PropertyGroup>
+	<ItemDefinitionGroup>
+	    	<ClCompile>
+	    		<ObjectFileName>$(IntDir)%(FileName).o</ObjectFileName>
+	    		<MultiProcessorCompilation>true</MultiProcessorCompilation>
+		</ClCompile>
+		<Link>
+			<LinkerScript>$(NINTENDO_SDK_ROOT)/Resources/SpecFiles/RoModule.aarch64.lp64.ldscript</LinkerScript>
+		</Link>
+	</ItemDefinitionGroup>
+	
+</Project>
