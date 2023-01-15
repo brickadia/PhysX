@@ -1831,15 +1831,12 @@ void AABBManager::processBPDeletedPair(const BroadPhasePair& pair)
 	else
 		pairMap = &mActorAggregatePairs;		// PT: actor-aggregate pair
 
-	PersistentPairs* p;
+	if (const AggPairMap::Entry* e = pairMap->find(AggPair(volA, volB)))
 	{
-		const AggPairMap::Entry* e = pairMap->find(AggPair(volA, volB));
-		PX_ASSERT(e);
-		p = e->second;
+		PersistentPairs* p = e->second;
+		p->outputDeletedOverlaps(mDestroyedOverlaps, mVolumeData.begin());
+		p->mShouldBeDeleted = true;
 	}
-
-	p->outputDeletedOverlaps(mDestroyedOverlaps, mVolumeData.begin());
-	p->mShouldBeDeleted = true;
 }
 
 struct CreatedPairHandler
