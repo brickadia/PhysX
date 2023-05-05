@@ -460,12 +460,15 @@ namespace physx
 		}
 
 		template<class Combiner>
-		void combine1(const PxU32* words, PxU32 length)
+		void combine1(const PxU32* PX_RESTRICT words, PxU32 length)
 		{
 			extend(length << 5);
 			PxU32 combineLength = PxMin(getWordCount(), length);
+
+			PxU32* PX_RESTRICT localMap = mMap;
+
 			for (PxU32 i = 0; i<combineLength; i++)
-				mMap[i] = Combiner()(mMap[i], words[i]);
+				localMap[i] = Combiner()(localMap[i], words[i]);
 		}
 
 		template<class Combiner>
