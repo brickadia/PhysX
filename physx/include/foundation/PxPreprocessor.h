@@ -308,7 +308,7 @@ Pack macros - disabled on SPU because they are not supported
 Inline macro
 */
 #define PX_INLINE inline
-#if PX_WINDOWS_FAMILY
+#if PX_WINDOWS_FAMILY && __MSVC__
 	#pragma inline_depth(255)
 #endif
 

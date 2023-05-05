@@ -127,7 +127,7 @@ class CMakePreset:
                 if os.environ.get('PM_CUDA_PATH') is not None:
                     outString = outString + ' -DCUDAToolkit_ROOT_DIR=' + \
                             os.environ['PM_CUDA_PATH']
-                    if self.compiler in ['vc15', 'vc16', 'vc17']:
+                    if self.compiler in ['vc15', 'vc16', 'vc17', 'clang']:
                         outString = outString + ' -T cuda=' + os.environ['PM_CUDA_PATH']
                     # TODO: Need to do the same for gcc (aarch64) when we package it with Packman
                     elif self.compiler == 'clang':
@@ -151,6 +151,8 @@ class CMakePreset:
             outString = outString + '-G \"Visual Studio 16 2019\"'
         elif self.compiler == 'vc17':
             outString = outString + '-G \"Visual Studio 17 2022\"'
+        elif self.compiler == 'clang':
+            outString = outString + '-G \"Visual Studio 17 2022\" -T ClangCL'
         elif self.compiler == 'xcode':
             outString = outString + '-G Xcode'
         elif self.targetPlatform == 'linux':

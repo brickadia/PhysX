@@ -74,7 +74,7 @@ if "%BuildProfile%"=="1" (
 
 if "%BuildRelease%"=="1" (
 	echo Building release...
-	msbuild "%~dp0compiler\vc17win64-brickadia\PhysXSDK.sln" /m /property:Configuration=release
+	msbuild "%~dp0compiler\clangwin64-brickadia\PhysXSDK.sln" /m /property:Configuration=release
 	if not %ERRORLEVEL% == 0 (
 		echo Aborting script due to error.
 		exit /b 1
