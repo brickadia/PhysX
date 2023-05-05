@@ -2273,6 +2273,12 @@ void AABBManager::postBpStage3(PxBaseTask*)
 		for (PxU32 idx=0; idx<ElementType::eCOUNT; idx++)
 			totalCreatedOverlaps += mCreatedOverlaps[idx].size();
 
+		if ((totalCreatedOverlaps * 3) <= mCreatedPairs.size())
+		{
+			mCreatedPairs.~PxHashSet<Pair>();
+			new(&mCreatedPairs) PxHashSet<Pair>();
+		}
+
 		mCreatedPairs.clear();
 		mCreatedPairs.reserve(totalCreatedOverlaps);
 		
