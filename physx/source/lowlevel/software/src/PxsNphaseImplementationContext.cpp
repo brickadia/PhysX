@@ -646,11 +646,9 @@ void PxsNphaseImplementationContext::registerContactManager(PxsContactManager* c
 
 	PX_ASSERT(workUnit.geomType0<PxGeometryType::eGEOMETRY_COUNT);
 	PX_ASSERT(workUnit.geomType1<PxGeometryType::eGEOMETRY_COUNT);
-	const PxGeometryType::Enum geomType0 = PxGeometryType::Enum(workUnit.geomType0);
-	const PxGeometryType::Enum geomType1 = PxGeometryType::Enum(workUnit.geomType1);
 
 	Gu::Cache cache;
-	mContext.createCache(cache, geomType0, geomType1);
+	mContext.createCache(cache, workUnit);
 
 	PxMemZero(&output, sizeof(output));
 	output.nbPatches = PxTo8(patchCount);

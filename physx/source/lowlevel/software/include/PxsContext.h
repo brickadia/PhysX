@@ -99,7 +99,7 @@ public:
 					void						createTransformCache(PxVirtualAllocatorCallback& allocatorCallback);
 
 					PxsContactManager*			createContactManager(PxsContactManager* contactManager, const bool useCCD);
-					void						createCache(Gu::Cache& cache, PxGeometryType::Enum geomType0, PxGeometryType::Enum geomType1);
+					void						createCache(Gu::Cache& cache, const PxcNpWorkUnit& workUnit);
 					void						destroyCache(Gu::Cache& cache);
 					void						destroyContactManager(PxsContactManager* cm);
 

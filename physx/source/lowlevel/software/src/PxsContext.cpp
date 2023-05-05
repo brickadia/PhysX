@@ -280,10 +280,13 @@ PxsContactManager* PxsContext::createContactManager(PxsContactManager* contactMa
 	return cm;
 }
 
-void PxsContext::createCache(Gu::Cache& cache, PxGeometryType::Enum geomType0, PxGeometryType::Enum geomType1)
+void PxsContext::createCache(Gu::Cache& cache, const PxcNpWorkUnit& workUnit)
 {
 	if(mPCM)
 	{
+		const PxGeometryType::Enum geomType0 = PxGeometryType::Enum(workUnit.geomType0);
+		const PxGeometryType::Enum geomType1 = PxGeometryType::Enum(workUnit.geomType1);
+		
 		if(gEnablePCMCaching[geomType0][geomType1])
 		{
 			if(geomType0 <= PxGeometryType::eCONVEXMESH && geomType1 <= PxGeometryType::eCONVEXMESH)
@@ -302,6 +305,45 @@ void PxsContext::createCache(Gu::Cache& cache, PxGeometryType::Enum geomType0, P
 
 				}
 				cache.getManifold().clearManifold();
+			}
+			else if (geomType0 == PxGeometryType::eCUSTOM || geomType1 == PxGeometryType::eCUSTOM)
+			{
+				bool needMulti, needSphere;
+
+				const PxGeometry& geometry0 = workUnit.shapeCore0->mGeometry.getGeometry();
+				const PxGeometry& geometry1 = workUnit.shapeCore1->mGeometry.getGeometry();
+
+				if (geomType0 == PxGeometryType::eCUSTOM)
+				{
+					const PxCustomGeometry::Callbacks* callbacks = static_cast<const PxCustomGeometry&>(geometry0).callbacks;
+					needMulti = callbacks->needsMultiManifold(geometry0, geometry1);
+					needSphere = geomType1 == PxGeometryType::eSPHERE;
+				}
+				else
+				{
+					const PxCustomGeometry::Callbacks* callbacks = static_cast<const PxCustomGeometry&>(geometry1).callbacks;
+					needMulti = callbacks->needsMultiManifold(geometry1, geometry0);
+					needSphere = geomType0 == PxGeometryType::eSPHERE;
+				}
+
+				if (needMulti)
+				{
+					cache.setMultiManifold(NULL);
+				}
+				else if (needSphere)
+				{
+					Gu::PersistentContactManifold* manifold = mSphereManifoldPool.allocate();
+					PX_PLACEMENT_NEW(manifold, Gu::SpherePersistentContactManifold());
+					cache.setManifold(manifold);
+					cache.getManifold().clearManifold();
+				}
+				else
+				{
+					Gu::PersistentContactManifold* manifold = mManifoldPool.allocate();
+					PX_PLACEMENT_NEW(manifold, Gu::LargePersistentContactManifold());
+					cache.setManifold(manifold);
+					cache.getManifold().clearManifold();
+				}
 			}
 			else
 			{

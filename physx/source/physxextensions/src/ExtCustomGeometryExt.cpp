@@ -177,10 +177,21 @@ PxBounds3 PxCustomGeometryExt::BaseConvexCallbacks::getLocalBounds(const PxGeome
 	return bounds;
 }
 
+bool PxCustomGeometryExt::BaseConvexCallbacks::needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1) const
+{
+	PX_UNUSED(geom0);
+	PX_UNUSED(geom1);
+	
+	return false;
+}
+
 bool PxCustomGeometryExt::BaseConvexCallbacks::generateContacts(const PxGeometry& geom0, const PxGeometry& geom1,
 	const PxTransform& pose0, const PxTransform& pose1, const PxReal contactDistance, const PxReal meshContactMargin,
-	const PxReal toleranceLength, PxContactBuffer& contactBuffer) const
+	const PxReal toleranceLength, PxCache& cache, PxContactBuffer& contactBuffer, PxRenderOutput* renderOutput) const
 {
+	PX_UNUSED(cache);
+	PX_UNUSED(renderOutput);
+
 	struct ContactRecorder : immediate::PxContactRecorder
 	{
 		PxContactBuffer* contactBuffer;
