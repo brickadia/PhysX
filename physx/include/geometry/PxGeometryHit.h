@@ -89,7 +89,7 @@ PX_FLAGS_TYPEDEF(PxHitFlag, PxU16)
 */
 struct PxQueryHit
 {
-	PX_INLINE			PxQueryHit() : faceIndex(0xFFFFffff) {}
+	PX_INLINE			PxQueryHit() : faceIndex(0xFFFFffff), internalIndex(0xFFFFffff) {}
 
 	/**
 	Face index of touched triangle, for triangle meshes, convex meshes and height fields.
@@ -100,6 +100,11 @@ struct PxQueryHit
 	\note For convex meshes use #PxConvexMesh::getPolygonData() to retrieve touched polygon data.
 	*/
 	PxU32				faceIndex;
+
+	/**
+	 * Additional index usable by custom geometries.
+	 */
+	PxU32 				internalIndex;
 };
 
 /**
