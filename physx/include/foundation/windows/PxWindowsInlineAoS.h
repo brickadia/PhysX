@@ -2484,6 +2484,16 @@ PX_FORCE_INLINE PxU32 BAllEqFFFF(const BoolV a)
 	return PxU32(_mm_movemask_ps(a)==0);
 }
 
+PX_FORCE_INLINE PxU32 BAllEqXTTT(const BoolV a)
+{
+	return PxU32((_mm_movemask_ps(a) & 7) == 7);
+}
+
+PX_FORCE_INLINE PxU32 BAllEqXFFF(const BoolV a)
+{
+	return PxU32((_mm_movemask_ps(a) & 7) == 0);
+}
+
 PX_FORCE_INLINE PxU32 BGetBitMask(const BoolV a)
 {
 	return PxU32(_mm_movemask_ps(a));
