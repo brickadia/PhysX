@@ -923,6 +923,10 @@ PX_FORCE_INLINE PxU32 BAllEq(const BoolV a, const BoolV b);
 PX_FORCE_INLINE PxU32 BAllEqTTTT(const BoolV a);
 // Specialized/faster BAllEq function for b==FFFF
 PX_FORCE_INLINE PxU32 BAllEqFFFF(const BoolV a);
+// Specialized/faster BAllEq function for b==?TTT
+PX_FORCE_INLINE PxU32 BAllEqXTTT(const BoolV a);
+// Specialized/faster BAllEq function for b==?FFF
+PX_FORCE_INLINE PxU32 BAllEqXFFF(const BoolV a);
 
 /// Get BoolV as bits set in an PxU32. A bit in the output is set if the element is 'true' in the input.
 /// There is a bit for each element in a, with element 0s value held in bit0, element 1 in bit 1s and so forth.
