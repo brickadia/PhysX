@@ -458,24 +458,10 @@ void Gu::computeBounds(PxBounds3& bounds, const PxGeometry& geometry, const PxTr
 		{
 			const PxCustomGeometry& shape = static_cast<const PxCustomGeometry&>(geometry);
 
-			PxVec3p centre(0), extents(0);
 			if (shape.callbacks)
 			{
-				const PxBounds3 b = shape.callbacks->getLocalBounds(shape);
-				centre = b.getCenter(); extents = b.getExtents();
+				shape.callbacks->computeWorldBounds(bounds, geometry, pose, contactOffset, inflation);
 			}
-
-			const PxVec3p origin(pose.transform(centre));
-
-			const PxMat33Padded basis(pose.q);
-
-			const Vec4V extentsV = basisExtentV(basis, extents, contactOffset, inflation);
-
-			const Vec4V originV = V4LoadU(&origin.x);
-			const Vec4V minV = V4Sub(originV, extentsV);
-			const Vec4V maxV = V4Add(originV, extentsV);
-
-			StoreBounds(bounds, minV, maxV);
 		}
 		break;
 

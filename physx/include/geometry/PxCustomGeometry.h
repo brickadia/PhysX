@@ -35,14 +35,17 @@
 #include "geometry/PxGeometryHit.h"
 #include "geometry/PxGeometryQueryContext.h"
 #include "foundation/PxFoundationConfig.h"
+#include "foundation/PxTransform.h"
 
 #if !PX_DOXYGEN
 namespace physx
 {
 #endif
+	struct PxCache;
 	class PxContactBuffer;
 	class PxRenderOutput;
 	class PxMassProperties;
+	class PxGeometryHolder;
 
 	/**
 	\brief Custom geometry class. This class allows user to create custom geometries by providing a set of virtual callback functions.
@@ -117,6 +120,19 @@ namespace physx
 			*/
 			virtual PxBounds3 getLocalBounds(const PxGeometry& geometry) const = 0;
 
+			virtual void computeWorldBounds(PxBounds3& bounds, const PxGeometry& geometry, const PxTransform& pose, float contactOffset, float inflation) const = 0;
+
+
+			/**
+			\brief Return whether you need a persistent multi manifold for this shape pair.
+
+			\param[in] geom0 This custom geometry
+			\param[in] geom1 The other geometry
+
+			\return True if multi manifold is needed.
+			*/
+			virtual bool needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1) const = 0;
+
 			/**
 			\brief Contacts generation. Generate collision contacts between two geometries in given poses.
 
@@ -127,13 +143,15 @@ namespace physx
 			\param[in] contactDistance		The distance at which contacts begin to be generated between the pairs
 			\param[in] meshContactMargin	The mesh contact margin.
 			\param[in] toleranceLength		The toleranceLength. Used for scaling distance-based thresholds internally to produce appropriate results given simulations in different units
+			\param[in] cache				A buffer to store persistent manifolds across frames.
 			\param[out] contactBuffer		A buffer to write contacts to.
+			\param[out] renderOutput		A buffer to draw debug lines for visualization.
 
 			\return True if there are contacts. False otherwise.
 			*/
-			virtual bool generateContacts(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform& pose0, const PxTransform& pose1,
-				const PxReal contactDistance, const PxReal meshContactMargin, const PxReal toleranceLength,
-				PxContactBuffer& contactBuffer) const = 0;
+			virtual bool generateContacts(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1,
+				const PxReal contactDistance, const PxReal meshContactMargin, const PxReal toleranceLength, PxCache& cache,
+				PxContactBuffer& contactBuffer, PxRenderOutput* renderOutput) const = 0;
 
 			/**
 			\brief Raycast. Cast a ray against the geometry in given pose.
@@ -212,6 +230,11 @@ namespace physx
 			\param[out] breakingThreshold	The threshold to trigger contacts re-generation.
 			*/
 			virtual bool usePersistentContactManifold(const PxGeometry& geometry, PxReal& breakingThreshold) const = 0;
+
+			/**
+			\brief Extract proxy geometry for a query hit.
+			*/
+			virtual void extractQueryGeometry(PxLocationHit& hit, PxGeometryHolder& outGeometry, PxTransform& outLocalPose) const = 0;
 
 			/* Destructor */
 			virtual ~Callbacks() {}
