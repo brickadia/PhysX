@@ -61,33 +61,36 @@ PX_IMPLEMENT_OUTPUT_ERROR
 
 static PX_FORCE_INLINE void copy(PxRaycastHit* PX_RESTRICT dest, const PxRaycastHit* PX_RESTRICT src)
 {
-	dest->faceIndex	= src->faceIndex;
-	dest->flags		= src->flags;
-	dest->position	= src->position;
-	dest->normal	= src->normal;
-	dest->distance	= src->distance;
-	dest->u			= src->u;
-	dest->v			= src->v;
-	dest->actor		= src->actor;
-	dest->shape		= src->shape;
+	dest->faceIndex		= src->faceIndex;
+	dest->internalIndex = src->internalIndex;
+	dest->flags			= src->flags;
+	dest->position		= src->position;
+	dest->normal		= src->normal;
+	dest->distance		= src->distance;
+	dest->u				= src->u;
+	dest->v				= src->v;
+	dest->actor			= src->actor;
+	dest->shape			= src->shape;
 }
 
 static PX_FORCE_INLINE void copy(PxSweepHit* PX_RESTRICT dest, const PxSweepHit* PX_RESTRICT src)
 {
-	dest->faceIndex	= src->faceIndex;
-	dest->flags		= src->flags;
-	dest->position	= src->position;
-	dest->normal	= src->normal;
-	dest->distance	= src->distance;
-	dest->actor		= src->actor;
-	dest->shape		= src->shape;
+	dest->faceIndex		= src->faceIndex;
+	dest->internalIndex = src->internalIndex;
+	dest->flags			= src->flags;
+	dest->position		= src->position;
+	dest->normal		= src->normal;
+	dest->distance		= src->distance;
+	dest->actor			= src->actor;
+	dest->shape			= src->shape;
 }
 
 static PX_FORCE_INLINE void copy(PxOverlapHit* PX_RESTRICT dest, const PxOverlapHit* PX_RESTRICT src)
 {
-	dest->faceIndex	= src->faceIndex;
-	dest->actor		= src->actor;
-	dest->shape		= src->shape;
+	dest->faceIndex		= src->faceIndex;
+	dest->internalIndex = src->internalIndex;
+	dest->actor			= src->actor;
+	dest->shape			= src->shape;
 }
 
 // these partial template specializations are used to generalize the query code to be reused for all permutations of
