@@ -809,7 +809,7 @@ void NpShapeManager::visualize(PxRenderOutput& out, NpScene& scene, const PxRigi
 				Cm::renderOutputDebugBasis(out, PxDebugBasis(PxVec3(collisionAxes), 0xcf0000, 0x00cf00, 0x0000cf));
 			}
 
-			if(visualizeCollision)
+			if(visualizeCollision && (npShape.getCore().getFlags() & PxShapeFlag::eSIMULATION_SHAPE))
 			{
 				if(!useCullBox || cullbox.intersects(currentShapeBounds))
 					::visualize(geom, out, absPose, cullbox, fscale, visualizeShapes, visualizeEdges, useCullBox, visualizeSDFs);
