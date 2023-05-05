@@ -45,7 +45,7 @@ static bool pcmContactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 
 	float breakingThreshold = 0.01f * params.mToleranceLength;
 	bool usePCM = customGeom.callbacks->usePersistentContactManifold(customGeom, breakingThreshold);
-	if (otherGeom.getType() == PxGeometryType::eCUSTOM)
+	/*if (otherGeom.getType() == PxGeometryType::eCUSTOM)
 	{
 		float breakingThreshold1 = breakingThreshold;
 		if (checkedCast<PxCustomGeometry>(shape1).callbacks->usePersistentContactManifold(otherGeom, breakingThreshold1))
@@ -57,9 +57,9 @@ static bool pcmContactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 	else if (otherGeom.getType() > PxGeometryType::eCONVEXMESH)
 	{
 		usePCM = true;
-	}
+	}*/
 
-	if (usePCM)
+	if (usePCM && cache.isMultiManifold())
 	{
 		Gu::MultiplePersistentContactManifold& multiManifold = cache.getMultipleManifold();
 
@@ -70,7 +70,7 @@ static bool pcmContactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 		{
 			customGeom.callbacks->generateContacts(customGeom, otherGeom, transform0, transform1,
 				params.mContactDistance, params.mMeshContactMargin, params.mToleranceLength,
-				contactBuffer);
+				cache, contactBuffer, renderOutput);
 
 			multiManifold.initialize();
 			multiManifold.setRelativeTransform(curRTrans);
@@ -124,7 +124,7 @@ static bool pcmContactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 
 	return customGeom.callbacks->generateContacts(customGeom, otherGeom, transform0, transform1,
 		params.mContactDistance, params.mMeshContactMargin, params.mToleranceLength,
-		contactBuffer);
+		cache, contactBuffer, renderOutput);
 }
 
 bool Gu::pcmContactGeometryCustomGeometry(GU_CONTACT_METHOD_ARGS)
