@@ -33,15 +33,12 @@ using namespace physx;
 
 bool Gu::contactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 {
-	PX_UNUSED(renderOutput);
-	PX_UNUSED(cache);
-
 	const PxCustomGeometry& customGeom = checkedCast<PxCustomGeometry>(shape0);
 	const PxGeometry& otherGeom = shape1;
 
 	customGeom.callbacks->generateContacts(customGeom, otherGeom, transform0, transform1,
 											params.mContactDistance, params.mMeshContactMargin, params.mToleranceLength,
-											contactBuffer);
+											cache, contactBuffer, renderOutput);
 	return true;
 }
 

@@ -56,9 +56,10 @@ public:
 
 		// override PxCustomGeometry::Callbacks
 		virtual PxBounds3 getLocalBounds(const PxGeometry& geometry) const;
-		virtual bool generateContacts(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform& pose0, const PxTransform& pose1,
+		virtual bool needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1) const override;
+		virtual bool generateContacts(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1,
 			const PxReal contactDistance, const PxReal meshContactMargin, const PxReal toleranceLength,
-			PxContactBuffer& contactBuffer) const;
+			PxCache& cache, PxContactBuffer& contactBuffer, PxRenderOutput* renderOutput) const;
 		virtual PxU32 raycast(const PxVec3& origin, const PxVec3& unitDir, const PxGeometry& geom, const PxTransform& pose,
 			PxReal maxDist, PxHitFlags hitFlags, PxU32 maxHits, PxGeomRaycastHit* rayHits, PxU32 stride, PxRaycastThreadContext*) const;
 		virtual bool overlap(const PxGeometry& geom0, const PxTransform& pose0, const PxGeometry& geom1, const PxTransform& pose1, PxOverlapThreadContext*) const;

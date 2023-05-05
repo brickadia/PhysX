@@ -955,7 +955,7 @@ static bool computeMTD_CustomGeometry(PxVec3& mtd, PxF32& depth, const PxCustomG
 	PxContactBuffer contactBuffer;
 	contactBuffer.reset();
 
-	if(!geom0.callbacks->generateContacts(geom0, geom1, pose0, pose1, FLT_EPSILON, FLT_EPSILON, 1.0f, contactBuffer))
+	if(!geom0.callbacks->generateContacts(geom0, geom1, pose0, pose1, FLT_EPSILON, FLT_EPSILON, 1.0f, cache, contactBuffer, NULL))
 		return false;
 
 	return processContacts(mtd, depth, contactBuffer.count, contactBuffer.contacts);

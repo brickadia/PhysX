@@ -648,11 +648,8 @@ void PxsNphaseImplementationContext::registerContactManager(PxsContactManager* c
 
 	PxcNpWorkUnit& workUnit = cm->getWorkUnit();
 
-	const PxGeometryType::Enum geomType0 = workUnit.getGeomType0();
-	const PxGeometryType::Enum geomType1 = workUnit.getGeomType1();
-
 	Gu::Cache cache;
-	mContext.createCache(cache, geomType0, geomType1);
+	mContext.createCache(cache, workUnit);
 
 	PxsContactManagerOutput& output = *mNewNarrowPhasePairs.mOutputContactManagers.insert();
 	PxMemZero(&output, sizeof(output));
