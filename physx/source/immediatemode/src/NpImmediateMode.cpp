@@ -843,6 +843,24 @@ bool immediate::PxGenerateContacts(	const PxGeometry* const * geom0, const PxGeo
 	return true;
 }
 
+void immediate::PxGenerateContactsFast(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1, PxCache& contactCache, PxContactBuffer& contactBuffer,
+	PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength)
+{
+	contactBuffer.count = 0;
+	PxGeometryType::Enum type0 = geom0.getType();
+	PxGeometryType::Enum type1 = geom1.getType();
+
+	const PxGeometry& tempGeom0 = geom0;
+	const PxGeometry& tempGeom1 = geom1;
+
+	PX_ASSERT(type0 <= type1);
+
+	Gu::Cache& cache = static_cast<Gu::Cache&>(contactCache);
+
+	Gu::NarrowPhaseParams params(contactDistance, meshContactMargin, toleranceLength);
+	g_PCMContactMethodTable[type0][type1](tempGeom0, tempGeom1, pose0, pose1, params, cache, contactBuffer, NULL);
+}
+
 immArticulation::immArticulation(const PxArticulationDataRC& data) :
 	FeatherstoneArticulation(this),
 	mFlags					(data.flags),
