@@ -38,6 +38,7 @@
 #if !PX_DOXYGEN
 namespace physx
 {
+	class PxContactBuffer;
 #endif
 
 	class PxCudaContextManager;
@@ -267,6 +268,14 @@ namespace immediate
 	PX_C_EXPORT PX_PHYSX_CORE_API bool PxGenerateContacts(	const PxGeometry* const * geom0, const PxGeometry* const * geom1, const PxTransform* pose0, const PxTransform* pose1,
 															PxCache* contactCache, PxU32 nbPairs, PxContactRecorder& contactRecorder,
 															PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength, PxCacheAllocator& allocator);
+
+	PX_C_EXPORT PX_PHYSX_CORE_API void PxGenerateContactsFast(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1,
+															PxCache& contactCache, PxContactBuffer& contactBuffer,
+															PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength);
+
+	PX_C_EXPORT PX_PHYSX_CORE_API void PxGenerateContactsFastPCM(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1,
+															PxCache& contactCache, PxContactBuffer& contactBuffer,
+															PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength);
 
 	struct PxArticulationJointDataRC
 	{
