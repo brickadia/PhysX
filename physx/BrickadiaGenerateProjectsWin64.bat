@@ -22,7 +22,7 @@ if not exist "%VisualStudioLocation%" (
 set PM_PACKAGES_ROOT=%~dp0packages
 
 :: Generate windows project (static)
-call "generate_projects.bat" vc17win64-brickadia
+call "generate_projects.bat" clangwin64-brickadia
 
 if not %ERRORLEVEL% == 0 (
 	echo Aborting script due to error.

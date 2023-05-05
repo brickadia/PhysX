@@ -106,7 +106,7 @@ https://developercommunity.visualstudio.com/content/problem/66047/possible-compi
 // Changing these parameters requires recompilation of the SDK
 
 // Enable debug visualization
-#define PX_ENABLE_DEBUG_VISUALIZATION	1
+#define PX_ENABLE_DEBUG_VISUALIZATION	(PX_DEBUG || PX_CHECKED || PX_PROFILE)
 #define PX_CATCH_UNDEFINED_ENABLE_DEBUG_VISUALIZATION
 
 // Enable simulation statistics generation

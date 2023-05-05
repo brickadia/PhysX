@@ -1,5 +1,6 @@
 bin/
-compiler/linux-*
+compiler/linux*
 compiler/vc*
+compiler/clang*
 include/PxConfig.h
 packages/
