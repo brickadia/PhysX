@@ -31,7 +31,11 @@ OPTION(PX_USE_NVTX "Enabled NVTX profiling" OFF)
 # We define the CXX flags for this CMakeLists and all others that are included afterwards. This is a GLOBAL setting.
 # If/when the solutions go standalone (say, samples and visual tests) - those CMakeLists will need to be fixed.
 
-SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996")
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996 -Wno-return-type-c-linkage -Wno-inconsistent-missing-override -Wno-bitwise-instead-of-logical -Wno-invalid-offsetof -Wno-unused-local-typedef -Wno-missing-field-initializers -Wno-reorder-ctor -Wno-unused-but-set-variable -Wno-sign-compare -Wno-unused-private-field -Wno-unused-variable -Wno-undefined-bool-conversion")
+ELSE()
+	SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996")
+ENDIF()
 
 # Cache the CXX flags so the other CMakeLists.txt can use them if needed
 IF(PX_FLOAT_POINT_PRECISE_MATH)
@@ -40,7 +44,7 @@ ELSE()
 	SET(PHYSX_FP_MODE "/fp:fast")
 ENDIF()
 IF(CMAKE_CL_64)
-	SET(PHYSX_CXX_FLAGS "/d2Zi+ /MP /WX /W4 /GF /GS- /GR- /Gd ${PHYSX_FP_MODE} /Oy ${PHYSX_WARNING_DISABLES}" CACHE INTERNAL "PhysX CXX")
+	SET(PHYSX_CXX_FLAGS "/d2Zi+ /MP /WX /W4 /GF /GS- /GR- /Gd ${PHYSX_FP_MODE} /Oy ${PHYSX_WARNING_DISABLES} /arch:AVX2" CACHE INTERNAL "PhysX CXX")
 ELSE()
 	SET(PHYSX_CXX_FLAGS "/arch:SSE2 /d2Zi+ /MP /WX /W4 /GF /GS- /GR- /Gd ${PHYSX_FP_MODE} /Oy ${PHYSX_WARNING_DISABLES}" CACHE INTERNAL "PhysX CXX")
 ENDIF()
