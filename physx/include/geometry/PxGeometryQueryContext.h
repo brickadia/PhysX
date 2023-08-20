@@ -50,6 +50,11 @@ namespace physx
 	*/
 	struct PxQueryThreadContext
 	{
+		/**
+		 * Additional filter bits used by custom geometries.
+		 * Required in all queries that may enter them, so a good fit here.
+		 */
+		PxU32 internalFilterBits;
 	};
 
 	/**
