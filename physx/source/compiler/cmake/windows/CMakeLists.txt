@@ -32,7 +32,7 @@ OPTION(PX_USE_NVTX "Enabled NVTX profiling" OFF)
 # If/when the solutions go standalone (say, samples and visual tests) - those CMakeLists will need to be fixed.
 
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-	SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996 -Wno-return-type-c-linkage -Wno-inconsistent-missing-override -Wno-bitwise-instead-of-logical -Wno-invalid-offsetof -Wno-unused-local-typedef -Wno-missing-field-initializers -Wno-reorder-ctor -Wno-unused-but-set-variable -Wno-sign-compare -Wno-unused-private-field -Wno-unused-variable -Wno-undefined-bool-conversion")
+	SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996 -Wno-return-type-c-linkage -Wno-inconsistent-missing-override -Wno-bitwise-instead-of-logical -Wno-invalid-offsetof -Wno-unused-local-typedef -Wno-missing-field-initializers -Wno-reorder-ctor -Wno-unused-but-set-variable -Wno-sign-compare -Wno-unused-private-field -Wno-unused-variable -Wno-undefined-bool-conversion -Wno-deprecated-copy-with-user-provided-copy")
 ELSE()
 	SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996")
 ENDIF()
