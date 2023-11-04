@@ -21,6 +21,9 @@ if not exist "%VisualStudioLocation%" (
 :: Prepare
 set PM_PACKAGES_ROOT=%~dp0packages
 
+set LLVMInstallDir=C:/Program Files/LLVM
+set LLVMToolsVersion=17.0.4
+
 :: Generate windows project (static)
 call "generate_projects.bat" clangwin64-brickadia
 
