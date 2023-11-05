@@ -72,6 +72,7 @@ SET(CLANG_WARNINGS "-ferror-limit=0 -Wall -Wextra -Werror -Wstrict-aliasing=2 -W
     -Wno-undefined-func-template \
 	-Wno-unused-but-set-variable \
 	-Wno-deprecated-copy-with-user-provided-copy \
+	-Wno-unsafe-buffer-usage \
 ")
 
 
