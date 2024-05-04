@@ -28,7 +28,8 @@ if not %ERRORLEVEL% == 0 (
 set PM_PACKAGES_ROOT=%~dp0packages
 
 set LLVMInstallDir=C:/Program Files/LLVM
-set LLVMToolsVersion=17.0.4
+set LLVMToolsVersion=18.1.5
+set LLVMIncludeVersion=18
 
 set BuildDebug=0
 set BuildChecked=0

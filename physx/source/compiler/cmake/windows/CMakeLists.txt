@@ -41,7 +41,11 @@ ENDIF()
 IF(PX_FLOAT_POINT_PRECISE_MATH)
 	SET(PHYSX_FP_MODE "/fp:precise")
 ELSE()
-	SET(PHYSX_FP_MODE "/fp:fast")
+	IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		SET(PHYSX_FP_MODE "/fp:fast /clang:-fhonor-infinities /clang:-fhonor-nans /clang:-fno-associative-math")
+	ELSE()
+		SET(PHYSX_FP_MODE "/fp:fast")
+	ENDIF()
 ENDIF()
 
 # Common Flags
