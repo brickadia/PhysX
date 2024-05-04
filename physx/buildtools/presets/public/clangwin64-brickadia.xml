@@ -7,7 +7,7 @@
     <cmakeSwitch name="PX_GENERATE_STATIC_LIBRARIES" value="True" comment="Generate static libraries" />
     <cmakeSwitch name="NV_USE_STATIC_WINCRT" value="False" comment="Use the statically linked windows CRT" />
     <cmakeSwitch name="NV_USE_DEBUG_WINCRT" value="False" comment="Use the debug version of the CRT" />
-    <cmakeSwitch name="PX_FLOAT_POINT_PRECISE_MATH" value="True" comment="Float point precise math" />
+    <cmakeSwitch name="PX_FLOAT_POINT_PRECISE_MATH" value="False" comment="Float point precise math" />
   </CMakeSwitches>
   <CMakeParams>
     <cmakeParam name="CMAKE_INSTALL_PREFIX" value="install/clangwin64-brickadia/PhysX" comment="Install path relative to PhysX SDK root" />
