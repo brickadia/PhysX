@@ -1790,6 +1790,8 @@ static PX_FORCE_INLINE void outputPair(PairManagerMT& pairManager, PxU32 index0,
 			return "ABP_InternalTask";
 		}
 
+		virtual bool isHighPriority() const override { return true; }
+
 		virtual void run()	PX_OVERRIDE;
 
 		BroadPhaseABP*			mBP;
@@ -1812,6 +1814,8 @@ static PX_FORCE_INLINE void outputPair(PairManagerMT& pairManager, PxU32 index0,
 		{
 			return "ABP_CompleteBoxPruningTask";
 		}
+
+		virtual bool isHighPriority() const override { return true; }
 
 		virtual void run()	PX_OVERRIDE;
 
@@ -1854,6 +1858,8 @@ static PX_FORCE_INLINE void outputPair(PairManagerMT& pairManager, PxU32 index0,
 			return "ABP_CompleteBoxPruningEndTask";
 		}
 
+		virtual bool isHighPriority() const override { return true; }
+
 		virtual void run()	PX_OVERRIDE;
 
 		ABP_CompleteBoxPruningStartTask*	mStartTask;
@@ -1868,6 +1874,8 @@ static PX_FORCE_INLINE void outputPair(PairManagerMT& pairManager, PxU32 index0,
 		{
 			return "ABP_CompleteBoxPruningStartTask";
 		}
+
+		virtual bool isHighPriority() const override { return true; }
 
 		void	setup(
 			//ABP_MM& memoryManager,

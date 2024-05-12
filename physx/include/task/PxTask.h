@@ -64,6 +64,11 @@ public:
      */
     virtual const char*	getName() const = 0;
 
+	/**
+	 * \brief Return whether this is a high priority task
+	 */
+	virtual bool		isHighPriority() const { return false; }
+
     //! \brief Implemented by derived implementation classes
     virtual void		addReference() = 0;
     //! \brief Implemented by derived implementation classes
