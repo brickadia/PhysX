@@ -1090,6 +1090,7 @@ void immediate::PxGenerateContactsFast(const PxGeometry& geom0, const PxGeometry
 
 	Gu::Cache& cache = static_cast<Gu::Cache&>(contactCache);
 
+	/*
 	if (cache.isManifold())
 	{
 		cache.getManifold().clearManifold();
@@ -1098,6 +1099,7 @@ void immediate::PxGenerateContactsFast(const PxGeometry& geom0, const PxGeometry
 	{
 		cache.getMultipleManifold().clearManifold();
 	}
+	*/
 
 	Gu::NarrowPhaseParams params(contactDistance, meshContactMargin, toleranceLength);
 	g_PCMContactMethodTable[type0][type1](tempGeom0, tempGeom1, pose0, pose1, params, cache, contactBuffer, NULL);
