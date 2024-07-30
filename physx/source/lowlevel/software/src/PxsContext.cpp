@@ -283,8 +283,8 @@ void PxsContext::createCache(Gu::Cache& cache, const PxcNpWorkUnit& workUnit)
 {
 	if(mPCM)
 	{
-		const PxGeometryType::Enum geomType0 = PxGeometryType::Enum(workUnit.geomType0);
-		const PxGeometryType::Enum geomType1 = PxGeometryType::Enum(workUnit.geomType1);
+		const PxGeometryType::Enum geomType0 = PxGeometryType::Enum(workUnit.mGeomType0);
+		const PxGeometryType::Enum geomType1 = PxGeometryType::Enum(workUnit.mGeomType1);
 		
 		if(gEnablePCMCaching[geomType0][geomType1])
 		{
@@ -309,8 +309,8 @@ void PxsContext::createCache(Gu::Cache& cache, const PxcNpWorkUnit& workUnit)
 			{
 				bool needMulti, needSphere;
 
-				const PxGeometry& geometry0 = workUnit.shapeCore0->mGeometry.getGeometry();
-				const PxGeometry& geometry1 = workUnit.shapeCore1->mGeometry.getGeometry();
+				const PxGeometry& geometry0 = workUnit.mShapeCore0->mGeometry.getGeometry();
+				const PxGeometry& geometry1 = workUnit.mShapeCore1->mGeometry.getGeometry();
 
 				if (geomType0 == PxGeometryType::eCUSTOM)
 				{
