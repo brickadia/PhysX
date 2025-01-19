@@ -27,6 +27,7 @@
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
 #include "ScConstraintCore.h"
+#include "ScConstraintInteraction.h"
 #include "ScPhysics.h"
 #include "ScConstraintSim.h"
 
@@ -57,7 +58,20 @@ void Sc::ConstraintCore::setFlags(PxConstraintFlags flags)
 	{		
 		mFlags = flags;
 		if(mSim)
+		{
 			mSim->postFlagChange(old, flags);
+
+			if ((old & PxConstraintFlag::eCOLLISION_ENABLED) != (flags & PxConstraintFlag::eCOLLISION_ENABLED))
+			{
+				ConstraintInteraction* interaction = const_cast<ConstraintInteraction*>(mSim->getInteraction());
+
+				ActorSim& a0 = interaction->getActorSim0();
+				ActorSim& a1 = interaction->getActorSim1();
+				ActorSim& actor = (a0.getActorInteractionCount() < a1.getActorInteractionCount()) ? a0 : a1;
+
+				actor.setActorsInteractionsDirty(InteractionDirtyFlag::eFILTER_STATE, NULL, InteractionFlag::eRB_ELEMENT);
+			}
+		}
 	}
 }
 
