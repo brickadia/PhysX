@@ -46,6 +46,7 @@ ENDIF()
 OPTION(PX_SCALAR_MATH "Disable SIMD math" OFF)
 OPTION(PX_GENERATE_STATIC_LIBRARIES "Generate static libraries" OFF)
 OPTION(PX_EXPORT_LOWLEVEL_PDB "Export low level pdb's" OFF)
+OPTION(PX_THIN_LTO "Enable ThinLTO for release builds" OFF)
 
 IF(NOT DEFINED PHYSX_ROOT_DIR)
 

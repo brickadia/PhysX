@@ -1108,17 +1108,17 @@ namespace
 		fprintf(fp, "# Tetrahedral mesh generated using\n\n");
 
 
-		fprintf(fp, "# %d vertices\n", tetPoints.size());
+		fprintf(fp, "# %u vertices\n", tetPoints.size());
 		for (PxU32 i = 0; i < tetPoints.size(); ++i)
 		{
 			fprintf(fp, "v %f %f %f\n", PxF64(tetPoints[i].x), PxF64(tetPoints[i].y), PxF64(tetPoints[i].z));
 		}
 
 		fprintf(fp, "\n");
-		fprintf(fp, "# %d tetrahedra\n", (tets.size() / 4));
+		fprintf(fp, "# %u tetrahedra\n", (tets.size() / 4));
 		for (PxU32 i = 0; i < tets.size(); i += 4)
 		{
-			fprintf(fp, "t %d %d %d %d\n", tets[i], tets[i + 1], tets[i + 2], tets[i + 3]);
+			fprintf(fp, "t %u %u %u %u\n", tets[i], tets[i + 1], tets[i + 2], tets[i + 3]);
 		}
 
 		fclose(fp);
@@ -1132,7 +1132,7 @@ namespace
 		fp = fopen(path, "w+");
 		fprintf(fp, "OFF\n");
 
-		fprintf(fp, "%d %d 0\n", vertices.size() / 3, tris.size() / 3);
+		fprintf(fp, "%u %u 0\n", vertices.size() / 3, tris.size() / 3);
 		for (PxU32 i = 0; i < vertices.size(); i += 3)
 		{
 			fprintf(fp, "%f %f %f\n", PxF64(vertices[i]), PxF64(vertices[i + 1]), PxF64(vertices[i + 2]));

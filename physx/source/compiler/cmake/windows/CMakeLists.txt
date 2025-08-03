@@ -31,23 +31,40 @@ OPTION(PX_USE_NVTX "Enabled NVTX profiling" OFF)
 # We define the CXX flags for this CMakeLists and all others that are included afterwards. This is a GLOBAL setting.
 # If/when the solutions go standalone (say, visual tests) - those CMakeLists will need to be fixed.
 
-SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996")
+IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996 -Wno-return-type-c-linkage -Wno-inconsistent-missing-override -Wno-bitwise-instead-of-logical -Wno-invalid-offsetof -Wno-unused-local-typedef -Wno-missing-field-initializers -Wno-reorder-ctor -Wno-unused-but-set-variable -Wno-sign-compare -Wno-unused-private-field -Wno-unused-variable -Wno-unused-function -Wno-undefined-bool-conversion -Wno-deprecated-copy-with-user-provided-copy -Wno-cast-function-type-mismatch")
+ELSE()
+	SET(PHYSX_WARNING_DISABLES "/wd4514 /wd4820 /wd4127 /wd4710 /wd4711 /wd4577 /wd4996")
+ENDIF()
 
 # Cache the CXX flags so the other CMakeLists.txt can use them if needed
 IF(PX_FLOAT_POINT_PRECISE_MATH)
 	SET(PHYSX_FP_MODE "/fp:precise")
 ELSE()
-	SET(PHYSX_FP_MODE "/fp:fast")
+	IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		SET(PHYSX_FP_MODE "/fp:fast /clang:-fhonor-infinities /clang:-fhonor-nans /clang:-fno-associative-math")
+	ELSE()
+		SET(PHYSX_FP_MODE "/fp:fast")
+	ENDIF()
 ENDIF()
 
 # Common Flags
 # PT: changed /Ox to /O2 because "the /Ox compiler option enables only a subset of the speed optimization options enabled by /O2."
 # See https://docs.microsoft.com/en-us/cpp/build/reference/ox-full-optimization?view=vs-2019
-SET(PHYSX_COMMON_FLAGS "/std:c++14 /d2Zi+ /MP /WX /W4 /GF /GS- /Gd ${PHYSX_FP_MODE} /Oy ${PHYSX_WARNING_DISABLES}")
-SET(PHYSX_COMMON_FLAGS_DEBUG "/Od ${WINCRT_DEBUG} /RTCu /Zi")
-SET(PHYSX_COMMON_FLAGS_CHECKED "/O2 ${WINCRT_NDEBUG} /Zi")
+SET(PHYSX_COMMON_FLAGS "/std:c++14 /d2Zi+ /WX /W4 /GF /GS- /Gd ${PHYSX_FP_MODE} /Oy ${PHYSX_WARNING_DISABLES} /arch:AVX")
+IF(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	SET(PHYSX_COMMON_FLAGS "${PHYSX_COMMON_FLAGS} /MP")
+ENDIF()
+SET(PHYSX_COMMON_FLAGS_DEBUG "/Od ${WINCRT_DEBUG} /RTCu /Z7")
+SET(PHYSX_COMMON_FLAGS_CHECKED "/O2 ${WINCRT_NDEBUG} /Z7")
 SET(PHYSX_COMMON_FLAGS_PROFILE "/O2 ${WINCRT_NDEBUG} /Zi")
 SET(PHYSX_COMMON_FLAGS_RELEASE "/O2 ${WINCRT_NDEBUG} /Zi")
+
+SET(PHYSX_LTO_CXX_EXTRA "")
+IF(PX_THIN_LTO AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	SET(PHYSX_COMMON_FLAGS_RELEASE "${PHYSX_COMMON_FLAGS_RELEASE} -flto=thin")
+	SET(PHYSX_LTO_CXX_EXTRA "-fwhole-program-vtables")
+ENDIF()
 
 # C++ Specific Flags
 IF(CMAKE_CL_64)
@@ -66,7 +83,7 @@ ENDIF()
 SET(PHYSX_CXX_FLAGS_DEBUG "${PHYSX_COMMON_FLAGS_DEBUG}" CACHE INTERNAL "PhysX Debug CXX Flags")
 SET(PHYSX_CXX_FLAGS_CHECKED "${PHYSX_COMMON_FLAGS_CHECKED}" CACHE INTERNAL "PhysX Checked CXX Flags")
 SET(PHYSX_CXX_FLAGS_PROFILE "${PHYSX_COMMON_FLAGS_PROFILE}" CACHE INTERNAL "PhysX Profile CXX Flags")
-SET(PHYSX_CXX_FLAGS_RELEASE "${PHYSX_COMMON_FLAGS_RELEASE}" CACHE INTERNAL "PhysX Release CXX Flags")
+SET(PHYSX_CXX_FLAGS_RELEASE "${PHYSX_COMMON_FLAGS_RELEASE} ${PHYSX_LTO_CXX_EXTRA}" CACHE INTERNAL "PhysX Release CXX Flags")
 
 SET(PHYSX_C_FLAGS_DEBUG "${PHYSX_COMMON_FLAGS_DEBUG}" CACHE INTERNAL "PhysX Debug C Flags")
 SET(PHYSX_C_FLAGS_CHECKED "${PHYSX_COMMON_FLAGS_CHECKED}" CACHE INTERNAL "PhysX Checked C Flags")
@@ -94,8 +111,8 @@ SET(CMAKE_CXX_FLAGS_RELEASE ${PHYSX_CXX_FLAGS_RELEASE})
 
 # Build PDBs for all configurations
 SET(CMAKE_SHARED_LINKER_FLAGS "/DEBUG /INCREMENTAL:NO")
-SET(CMAKE_SHARED_LINKER_FLAGS_DEBUG "/DEBUG /INCREMENTAL:NO")
-SET(CMAKE_SHARED_LINKER_FLAGS_CHECKED "/DEBUG /INCREMENTAL:NO /OPT:REF")
+SET(CMAKE_SHARED_LINKER_FLAGS_DEBUG "/DEBUG /INCREMENTAL:NO /FUNCTIONPADMIN:6")
+SET(CMAKE_SHARED_LINKER_FLAGS_CHECKED "/DEBUG /INCREMENTAL:NO /FUNCTIONPADMIN:6")
 SET(CMAKE_SHARED_LINKER_FLAGS_PROFILE "/DEBUG /INCREMENTAL:NO /OPT:REF")
 SET(CMAKE_SHARED_LINKER_FLAGS_RELEASE "/DEBUG /INCREMENTAL:NO /OPT:REF")
 
