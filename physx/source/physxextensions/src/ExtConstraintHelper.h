@@ -219,7 +219,7 @@ namespace Ext
 
 			PX_FORCE_INLINE void anglePair(PxReal angle, PxReal lower, PxReal upper, const PxVec3& axis, const PxJointLimitParameters& limit)
 			{
-				PX_ASSERT(lower<upper);
+				PX_ASSERT(lower<=upper);
 				const bool softLimit = limit.isSoft();
 
 				if(!softLimit || angle < lower)
