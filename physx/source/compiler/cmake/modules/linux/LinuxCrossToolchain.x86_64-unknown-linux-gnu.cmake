@@ -61,9 +61,9 @@ IF(NOT $ENV{PM_PACKAGES_ROOT} EQUAL "")
 
 	SET(CMAKE_FIND_ROOT_PATH  ${LINUX_ROOT})
 
-	# unreal custom libc++ stuff
-	SET(CMAKE_CXX_FLAGS "-nostdinc++ -isystem\"$ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/include\" -isystem\"$ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/include/c++/v1\"")
-	SET(UE_LINKER_FLAGS "-nodefaultlibs -Wl,--build-id -L$ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/ $ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/libc++.a $ENV{BRICKADIA_UNREAL_DIR}Engine/Source/ThirdParty/Unix/LibCxx/lib/Unix/x86_64-unknown-linux-gnu/libc++abi.a -lm -lc -lpthread -lgcc_s -lgcc")
+	# UE 5.7+: libc++ is now bundled in the v26 toolchain sysroot instead of Engine/Source/ThirdParty/Unix/LibCxx/
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc++ -isystem\"${LINUX_ROOT}/include/c++/v1\"")
+	SET(UE_LINKER_FLAGS "-nodefaultlibs -Wl,--build-id -L${LINUX_ROOT}/lib64 ${LINUX_ROOT}/lib64/libc++.a ${LINUX_ROOT}/lib64/libc++abi.a -lm -lc -lpthread -lgcc_s -lgcc")
 	SET(CMAKE_EXE_LINKER_FLAGS ${UE_LINKER_FLAGS})
 	SET(CAMKE_MODULE_LINKER_FLAGS ${UE_LINKER_FLAGS})
 	SET(CMAKE_SHARED_LINKER_FLAGS ${UE_LINKER_FLAGS})

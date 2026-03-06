@@ -73,7 +73,7 @@ PX_FORCE_INLINE void addObjectHandleToUniqueList
 PX_FORCE_INLINE void appendWithInt(char* buffer, PxU32 number)
 {	
 	char num[8];
-	sprintf(num, "%d", number);
+	sprintf(num, "%u", number);
 	strcat(buffer, num);
 }
 

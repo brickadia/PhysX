@@ -79,6 +79,7 @@ SET(CLANG_WARNINGS "-ferror-limit=0 -Wall -Wextra -Werror -Weverything\
 	-Wno-unused-but-set-variable \
 	-Wno-deprecated-copy-with-user-provided-copy \
 	-Wno-unsafe-buffer-usage \
+	-Wno-missing-include-dirs \
 ")
 
 SET(GCC_WARNINGS "-Wall -Werror \

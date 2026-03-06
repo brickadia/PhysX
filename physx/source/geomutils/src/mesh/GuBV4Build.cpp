@@ -396,7 +396,7 @@ bool BV4_AABBTree::buildFromMesh(SourceMeshBase& mesh, PxU32 limit, BV4_BuildStr
 	PX_FREE(boxes);
 
 	if(0)
-		printf("Tree depth: %d\n", walk(NULL, NULL));
+		printf("Tree depth: %u\n", walk(NULL, NULL));
 
 	return true;
 }
