@@ -88,4 +88,13 @@ if "%BuildRelease%"=="1" (
 		echo Aborting script due to error.
 		exit /b 1
 	)
+
+	echo Building release-lto...
+	pushd "%~dp0compiler\linux-crosscompile-brickadia-lto-release\"
+	make -j 24 "MAKE=make -j 24"
+	popd
+	if not %ERRORLEVEL% == 0 (
+		echo Aborting script due to error.
+		exit /b 1
+	)
 )

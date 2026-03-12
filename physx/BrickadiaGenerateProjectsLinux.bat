@@ -29,3 +29,11 @@ if not %ERRORLEVEL% == 0 (
 	echo Aborting script due to error.
 	exit /b 1
 )
+
+:: Generate linux project (ThinLTO)
+call "generate_projects.bat" linux-crosscompile-brickadia-lto
+
+if not %ERRORLEVEL% == 0 (
+	echo Aborting script due to error.
+	exit /b 1
+)

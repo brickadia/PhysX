@@ -33,6 +33,14 @@ if not %ERRORLEVEL% == 0 (
 	exit /b 1
 )
 
+:: Generate windows project (static, ThinLTO)
+call "generate_projects.bat" clangwin64-brickadia-lto
+
+if not %ERRORLEVEL% == 0 (
+	echo Aborting script due to error.
+	exit /b 1
+)
+
 :: Generate windows project (dynamic)
 call "generate_projects.bat" vc18win64-brickadia-dynamic
 
