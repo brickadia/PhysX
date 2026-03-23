@@ -124,7 +124,16 @@ PX_FORCE_INLINE void integrateCore(PxVec3& motionLinearVelocity, PxVec3& motionA
 
 	{
 		// Integrate linear part
-		const PxVec3 linearMotionVel = solverBodyData.linearVelocity + motionLinearVelocity;
+		PxVec3 linearMotionVel = solverBodyData.linearVelocity + motionLinearVelocity;
+
+		// Perform a post-solver safety clamp, mirroring the angular velocity clamp below
+		const PxReal maxV = 1e+7f;
+		const PxReal linVelSq = linearMotionVel.magnitudeSquared();
+		if (linVelSq > maxV * maxV)
+		{
+			linearMotionVel *= maxV / PxSqrt(linVelSq);
+		}
+
 		motionLinearVelocity = linearMotionVel;
 		const PxVec3 delta = linearMotionVel * dt;
 
