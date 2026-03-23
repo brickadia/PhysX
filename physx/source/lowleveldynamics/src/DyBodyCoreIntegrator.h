@@ -124,7 +124,23 @@ PX_FORCE_INLINE void integrateCore(PxVec3& motionLinearVelocity, PxVec3& motionA
 
 	{
 		// Integrate linear part
-		const PxVec3 linearMotionVel = solverBodyData.linearVelocity + motionLinearVelocity;
+		PxVec3 linearMotionVel = solverBodyData.linearVelocity + motionLinearVelocity;
+
+		// Perform a post-solver safety clamp, mirroring the angular velocity clamp below
+		if (!linearMotionVel.isFinite())
+		{
+			linearMotionVel = PxVec3(0.f);
+		}
+		else
+		{
+			const PxReal maxV = 1e+5f;
+			const PxReal linVelSq = linearMotionVel.magnitudeSquared();
+			if (linVelSq > maxV * maxV)
+			{
+				linearMotionVel *= maxV / PxSqrt(linVelSq);
+			}
+		}
+
 		motionLinearVelocity = linearMotionVel;
 		const PxVec3 delta = linearMotionVel * dt;
 
@@ -134,6 +150,12 @@ PX_FORCE_INLINE void integrateCore(PxVec3& motionLinearVelocity, PxVec3& motionA
 
 	{
 		PxVec3 angularMotionVel = solverBodyData.angularVelocity + solverBodyData.sqrtInvInertia * motionAngularVelocity;
+
+		if (!angularMotionVel.isFinite())
+		{
+			angularMotionVel = PxVec3(0.f);
+		}
+
 		PxReal w = angularMotionVel.magnitudeSquared();
 
 		// Integrate the rotation using closed form quaternion integrator
@@ -143,7 +165,7 @@ PX_FORCE_INLINE void integrateCore(PxVec3& motionLinearVelocity, PxVec3& motionA
 			// Perform a post-solver clamping
 			// TODO(dsequeira): ignore this for the moment
 			//just clamp motionVel to half float-range
-			const PxReal maxW = 1e+7f;		//Should be about sqrt(PX_MAX_REAL/2) or smaller
+			const PxReal maxW = 1e+5f;
 			if (w > maxW)
 			{
 				angularMotionVel = angularMotionVel.getNormalized() * maxW;
