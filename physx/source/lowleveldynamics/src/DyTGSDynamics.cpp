@@ -1422,13 +1422,45 @@ void integrateCoreStep(PxTGSSolverBodyVel& vel, PxTGSSolverBodyTxInertia& txIner
 	}
 
 	PxVec3 linearMotionVel = vel.linearVelocity;
+
+	// Post-solver safety clamp for linear velocity
+	if (!linearMotionVel.isFinite())
+	{
+		linearMotionVel = PxVec3(0.f);
+		vel.linearVelocity = PxVec3(0.f);
+	}
+	else
+	{
+		const PxReal maxV = 1e+5f;
+		const PxReal linVelSq = linearMotionVel.magnitudeSquared();
+		if (linVelSq > maxV * maxV)
+		{
+			linearMotionVel *= maxV / PxSqrt(linVelSq);
+			vel.linearVelocity = linearMotionVel;
+		}
+	}
+
 	const PxVec3 delta = linearMotionVel * dt;
 
 	//The solver accumulates deltaAngularMomocity.
 	//We need to translate from deltaAngularMomocity to deltaAngularVelocity.
 	//deltaAngularVelocity = I^(-1/2)*deltaAngularMomocity
 	PxVec3 unmolestedAngVel = vel.angularVelocity;
+
+	// Post-solver safety clamp for angular velocity
+	if (!unmolestedAngVel.isFinite())
+	{
+		unmolestedAngVel = PxVec3(0.f);
+		vel.angularVelocity = PxVec3(0.f);
+	}
+
 	PxVec3 angularMotionVel = txInertia.sqrtInvInertia * vel.angularVelocity;
+
+	if (!angularMotionVel.isFinite())
+	{
+		angularMotionVel = PxVec3(0.f);
+	}
+
 	PxReal w2 = angularMotionVel.magnitudeSquared();
 	txInertia.body2WorldP += delta;
 	PX_ASSERT(txInertia.body2WorldP.isFinite());
@@ -1437,17 +1469,16 @@ void integrateCoreStep(PxTGSSolverBodyVel& vel, PxTGSSolverBodyTxInertia& txIner
 	if (w2 != 0.0f)
 	{
 		PxReal w = PxSqrt(w2);
-		
-		//KS - we allow a little bit more angular velocity than the default
-		//maxAngVel member otherwise the simulation feels a little flimsy
-		/*const PxReal maxW = PxMax(50.f, vel.maxAngVel);
 
+		const PxReal maxW = 1e+5f;
 		if (w > maxW)
 		{
-			PxReal ratio = maxW / w;
-
+			const PxReal ratio = maxW / w;
+			angularMotionVel *= ratio;
 			vel.angularVelocity *= ratio;
-		}*/
+			unmolestedAngVel *= ratio;
+			w = maxW;
+		}
 
 		const PxReal v = dt * w * 0.5f;
 		PxReal s, q;
