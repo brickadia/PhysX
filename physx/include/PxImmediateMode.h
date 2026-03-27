@@ -39,6 +39,7 @@
 namespace physx
 {
 	class PxContactBuffer;
+	class PxRenderOutput;
 #endif
 
 	class PxCudaContextManager;
@@ -275,7 +276,8 @@ namespace immediate
 
 	PX_C_EXPORT PX_PHYSX_CORE_API void PxGenerateContactsFastPCM(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1,
 															PxCache& contactCache, PxContactBuffer& contactBuffer,
-															PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength);
+															PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength,
+															PxRenderOutput* renderOutput);
 
 	struct PxArticulationJointDataRC
 	{

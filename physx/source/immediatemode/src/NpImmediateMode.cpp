@@ -867,7 +867,7 @@ void immediate::PxGenerateContactsFast(const PxGeometry& geom0, const PxGeometry
 }
 
 void immediate::PxGenerateContactsFastPCM(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1, PxCache& contactCache, PxContactBuffer& contactBuffer,
-	PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength)
+	PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength, PxRenderOutput* renderOutput)
 {
 	contactBuffer.count = 0;
 	PxGeometryType::Enum type0 = geom0.getType();
@@ -881,7 +881,7 @@ void immediate::PxGenerateContactsFastPCM(const PxGeometry& geom0, const PxGeome
 	Gu::Cache& cache = static_cast<Gu::Cache&>(contactCache);
 
 	Gu::NarrowPhaseParams params(contactDistance, meshContactMargin, toleranceLength);
-	g_PCMContactMethodTable[type0][type1](tempGeom0, tempGeom1, pose0, pose1, params, cache, contactBuffer, NULL);
+	g_PCMContactMethodTable[type0][type1](tempGeom0, tempGeom1, pose0, pose1, params, cache, contactBuffer, renderOutput);
 }
 
 immArticulation::immArticulation(const PxArticulationDataRC& data) :
