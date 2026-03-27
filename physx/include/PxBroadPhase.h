@@ -223,9 +223,10 @@ namespace physx
 			mContextManager				(NULL),
 			mFoundLostPairsCapacity		(256 * 1024),
 			mDiscardStaticVsKinematic	(false),
-			mDiscardKinematicVsKinematic(false)
+			mDiscardKinematicVsKinematic(false),
+			mDiscardDynamicVsDynamic	(false)
 		{}
-	
+
 		PxBroadPhaseType::Enum	mType;							//!< Desired broadphase implementation
 		PxU64					mContextID;						//!< Context ID for profiler. See PxProfilerCallback.
 
@@ -233,7 +234,8 @@ namespace physx
 		PxU32					mFoundLostPairsCapacity;		//!< (GPU) Capacity of found and lost buffers allocated in GPU global memory. This is used for the found/lost pair reports in the BP.
 
 		bool					mDiscardStaticVsKinematic;		//!< Static-vs-kinematic filtering flag. Not supported by PxBroadPhaseType::eGPU.
-		bool					mDiscardKinematicVsKinematic;	//!< kinematic-vs-kinematic filtering flag. Not supported by PxBroadPhaseType::eGPU.
+		bool					mDiscardKinematicVsKinematic;	//!< Kinematic-vs-kinematic filtering flag. Not supported by PxBroadPhaseType::eGPU.
+		bool					mDiscardDynamicVsDynamic;		//!< Dynamic-vs-dynamic filtering flag. Not supported by PxBroadPhaseType::eGPU.
 
 		PX_INLINE	bool		isValid()	const
 		{

@@ -3368,12 +3368,11 @@ void ABP::findOverlaps(PxBaseTask* continuation, const Bp::FilterGroup::Enum* PX
 	if(!gPrepareOverlapsFlag)
 		Region_prepareOverlaps();
 
-	bool doKineKine = true;
-	bool doStaticKine = true;
-	{
-		doStaticKine = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::STATIC];
-		doKineKine = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::KINEMATIC];
-	}
+	const bool doDynDyn = lut[Bp::FilterType::DYNAMIC*Bp::FilterType::COUNT + Bp::FilterType::DYNAMIC];
+	const bool doStaticDyn = lut[Bp::FilterType::STATIC*Bp::FilterType::COUNT + Bp::FilterType::DYNAMIC];
+	const bool doStaticKine = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::STATIC];
+	const bool doKineKine = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::KINEMATIC];
+	const bool doKineDyn = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::DYNAMIC];
 
 	// PT:
 	// We have 3 different groups: static objects, dynamic objects, kinematic objects.
@@ -3401,7 +3400,7 @@ void ABP::findOverlaps(PxBaseTask* continuation, const Bp::FilterGroup::Enum* PX
 		mLeafTasks[3],
 		mLeafTasks[4],
 #endif
-		mMM, mPairManager, mSBM, mDBM, true, true, continuation, mContextID);
+		mMM, mPairManager, mSBM, mDBM, doDynDyn, doStaticDyn, continuation, mContextID);
 
 	// Static-vs-kinematics (bipartite) and kinematics-vs-kinematics (complete)
 	findAllOverlaps(
@@ -3416,7 +3415,7 @@ void ABP::findOverlaps(PxBaseTask* continuation, const Bp::FilterGroup::Enum* PX
 		mMM, mPairManager, mSBM, mKBM, doKineKine, doStaticKine, continuation, mContextID);
 
 	// Kinematics-vs-dynamics (bipartite)
-	if(1)
+	if(doKineDyn)
 	{
 		findAllOverlaps(
 	#ifdef ABP_MT2

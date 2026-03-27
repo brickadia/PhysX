@@ -116,7 +116,7 @@ namespace physx
 	class BpFilter
 	{
 		public:
-									BpFilter(bool discardKineKine, bool discardStaticKine);
+									BpFilter(bool discardKineKine, bool discardStaticKine, bool discardDynamicDynamic = false);
 									~BpFilter();
 
 		PX_FORCE_INLINE	const bool*	getLUT()	const	{ return &mLUT[0][0];	}
