@@ -31,7 +31,7 @@
 using namespace physx;
 using namespace Bp;
 
-BpFilter::BpFilter(bool discardKineKine, bool discardStaticKine)
+BpFilter::BpFilter(bool discardKineKine, bool discardStaticKine, bool discardDynamicDynamic)
 {
 	for(int j = 0; j < Bp::FilterType::COUNT; j++)
 		for(int i = 0; i < Bp::FilterType::COUNT; i++)
@@ -41,7 +41,7 @@ BpFilter::BpFilter(bool discardKineKine, bool discardStaticKine)
 	mLUT[Bp::FilterType::STATIC][Bp::FilterType::KINEMATIC] = mLUT[Bp::FilterType::KINEMATIC][Bp::FilterType::STATIC] = !discardStaticKine;
 	mLUT[Bp::FilterType::DYNAMIC][Bp::FilterType::KINEMATIC] = mLUT[Bp::FilterType::KINEMATIC][Bp::FilterType::DYNAMIC] = true;
 
-	mLUT[Bp::FilterType::DYNAMIC][Bp::FilterType::DYNAMIC] = true;
+	mLUT[Bp::FilterType::DYNAMIC][Bp::FilterType::DYNAMIC] = !discardDynamicDynamic;
 	mLUT[Bp::FilterType::KINEMATIC][Bp::FilterType::KINEMATIC] = !discardKineKine;
 
 	mLUT[Bp::FilterType::STATIC][Bp::FilterType::AGGREGATE] = mLUT[Bp::FilterType::AGGREGATE][Bp::FilterType::STATIC] = true;

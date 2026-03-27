@@ -1812,7 +1812,7 @@ static PX_FORCE_INLINE void outputPair(PairManagerMT& pairManager, PxU32 index0,
 
 		virtual	const char* getName()	const	PX_OVERRIDE
 		{
-			return "ABP_CompleteBoxPruningTask";
+			return mType == 0 ? "ABP_CompleteBoxPruningTask" : "ABP_BipartiteBoxPruningTask";
 		}
 
 		virtual void run()	PX_OVERRIDE;
@@ -3804,12 +3804,11 @@ void ABP::findOverlaps(PxBaseTask* continuation, const Bp::FilterGroup::Enum* PX
 	if(!gPrepareOverlapsFlag)
 		Region_prepareOverlaps();
 
-	bool doKineKine = true;
-	bool doStaticKine = true;
-	{
-		doStaticKine = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::STATIC];
-		doKineKine = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::KINEMATIC];
-	}
+	const bool doDynDyn = lut[Bp::FilterType::DYNAMIC*Bp::FilterType::COUNT + Bp::FilterType::DYNAMIC];
+	const bool doStaticDyn = lut[Bp::FilterType::STATIC*Bp::FilterType::COUNT + Bp::FilterType::DYNAMIC];
+	const bool doStaticKine = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::STATIC];
+	const bool doKineKine = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::KINEMATIC];
+	const bool doKineDyn = lut[Bp::FilterType::KINEMATIC*Bp::FilterType::COUNT + Bp::FilterType::DYNAMIC];
 
 	// Static-vs-dynamic (bipartite) and dynamic-vs-dynamic (complete)
 	findAllOverlaps(
@@ -3821,7 +3820,7 @@ void ABP::findOverlaps(PxBaseTask* continuation, const Bp::FilterGroup::Enum* PX
 		mBipTasks[3],
 		mBipTasks[4],
 #endif
-		mMM, mPairManager, mSBM, mDBM, true, true, continuation, mContextID);
+		mMM, mPairManager, mSBM, mDBM, doDynDyn, doStaticDyn, continuation, mContextID);
 
 	// Static-vs-kinematics (bipartite) and kinematics-vs-kinematics (complete)
 	findAllOverlaps(
@@ -3835,7 +3834,7 @@ void ABP::findOverlaps(PxBaseTask* continuation, const Bp::FilterGroup::Enum* PX
 #endif
 		mMM, mPairManager, mSBM, mKBM, doKineKine, doStaticKine, continuation, mContextID);
 
-	if(1)
+	if(doKineDyn)
 	{
 		findAllOverlaps(
 	#ifdef ABP_MT2

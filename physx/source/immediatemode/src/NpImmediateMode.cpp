@@ -1839,7 +1839,7 @@ namespace
 
 ImmCPUBP::ImmCPUBP(const PxBroadPhaseDesc& desc) :
 	mBroadPhase	(NULL),
-	mFilters	(desc.mDiscardKinematicVsKinematic, desc.mDiscardStaticVsKinematic),
+	mFilters	(desc.mDiscardKinematicVsKinematic, desc.mDiscardStaticVsKinematic, desc.mDiscardDynamicVsDynamic),
 	mContextID	(desc.mContextID),
 	mAABBManager(NULL)
 {
@@ -1947,7 +1947,12 @@ void ImmCPUBP::update(const PxBroadPhaseUpdateData& updateData, PxBaseTask* cont
 	// PT: BP UPDATE CALL
 	mBroadPhase->update(&mScratchAllocator, defaultUpdateData, continuation);
 
-	mBroadPhase->fetchBroadPhaseResults();	// ### could be skipped for CPU BPs
+	// Only fetch synchronously when not using async tasks. With a continuation,
+	// results must be fetched after the tasks complete via fetchResults().
+	if (!continuation)
+	{
+		mBroadPhase->fetchBroadPhaseResults();	// ### could be skipped for CPU BPs
+	}
 }
 
 void ImmCPUBP::fetchResults(PxBroadPhaseResults& results)
