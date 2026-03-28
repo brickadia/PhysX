@@ -508,7 +508,7 @@ bool PxCustomGeometryExt::BaseConvexCallbacks::sweep(const PxVec3& unitDir, cons
 	return false;
 }
 
-bool PxCustomGeometryExt::BaseConvexCallbacks::usePersistentContactManifold(const PxGeometry& /*geometry*/, PxReal& breakingThreshold) const
+bool PxCustomGeometryExt::BaseConvexCallbacks::usePersistentContactManifold(const PxGeometry& /*geom0*/, const PxGeometry& /*geom1*/, PxReal /*toleranceLength*/, PxReal& breakingThreshold) const
 {
 	// Even if we don't use persistent manifold, we still need to set proper breakingThreshold
 	// because the other geometry still can force the PCM usage. FLT_EPSILON ensures that

@@ -92,7 +92,7 @@ struct VoxelMap : physx::PxCustomGeometry::Callbacks, physx::PxUserAllocated
 		physx::PxGeomSweepHit& sweepHit, physx::PxHitFlags hitFlags, const physx::PxReal inflation, physx::PxSweepThreadContext*) const;
 	virtual void visualize(const physx::PxGeometry&, physx::PxRenderOutput&, const physx::PxTransform&, const physx::PxBounds3&) const;
 	virtual void computeMassProperties(const physx::PxGeometry&, physx::PxMassProperties&) const {}
-	virtual bool usePersistentContactManifold(const physx::PxGeometry&, physx::PxReal&) const { return true; }
+	virtual bool usePersistentContactManifold(const physx::PxGeometry&, const physx::PxGeometry&, physx::PxReal, physx::PxReal&) const { return true; }
 
 private:
 

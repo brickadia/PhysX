@@ -66,7 +66,7 @@ public:
 		virtual bool sweep(const PxVec3& unitDir, const PxReal maxDist,
 			const PxGeometry& geom0, const PxTransform& pose0, const PxGeometry& geom1, const PxTransform& pose1,
 			PxGeomSweepHit& sweepHit, PxHitFlags hitFlags, const PxReal inflation, PxSweepThreadContext*) const;
-		virtual bool usePersistentContactManifold(const PxGeometry& geometry, PxReal& breakingThreshold) const;
+		virtual bool usePersistentContactManifold(const PxGeometry&, const PxGeometry&, PxReal, PxReal& breakingThreshold) const;
 
 		// override PxGjkQuery::Support
 		virtual PxReal getMargin() const { return margin; }

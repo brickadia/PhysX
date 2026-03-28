@@ -33,6 +33,7 @@
 #include "foundation/PxMemory.h"
 #include "solver/PxSolverDefs.h"
 #include "collision/PxCollisionDefs.h"
+#include "geometry/PxGeometry.h"
 #include "PxArticulationReducedCoordinate.h"
 
 #if !PX_DOXYGEN
@@ -278,6 +279,24 @@ namespace immediate
 															PxCache& contactCache, PxContactBuffer& contactBuffer,
 															PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength,
 															PxRenderOutput* renderOutput);
+
+	/** Storage size for a temporary PCM cache manifold. Sufficient for all geometry pair types. Must be 16-byte aligned. */
+	#define PX_TEMP_PCM_CACHE_STORAGE_SIZE 512
+
+	/**
+	\brief Initialize a temporary PCM cache for use with PxGenerateContactsFastPCM.
+
+	Creates a blank persistent contact manifold in the provided storage and attaches it to the cache.
+	The appropriate manifold type (sphere or large) is selected based on the geometry types.
+	No cleanup is needed — the manifold lives in the caller-provided storage.
+
+	\param[out] cache			The cache to initialize.
+	\param[in]  storage			Caller-provided storage, must be at least PX_TEMP_PCM_CACHE_STORAGE_SIZE bytes, 16-byte aligned.
+	\param[in]  type0			Geometry type of shape 0 (must be <= type1).
+	\param[in]  type1			Geometry type of shape 1.
+	*/
+	PX_C_EXPORT PX_PHYSX_CORE_API void PxInitTemporaryPCMCache(PxCache& cache, void* storage,
+															PxGeometryType::Enum type0, PxGeometryType::Enum type1);
 
 	struct PxArticulationJointDataRC
 	{
