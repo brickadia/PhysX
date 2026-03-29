@@ -81,9 +81,15 @@ struct ContactReceiverImpl : PxCustomGeometry::Callbacks::ContactReceiver
 		for(PxU32 i = 0; i < numContacts && mNumContacts < MAX_MANIFOLD_CONTACTS; ++i)
 		{
 			const Vec3V worldPoint = V3LoadU(contacts[i].point);
+			const Vec3V worldNormal = V3LoadU(contacts[i].normal);
 			const FloatV separation = FLoad(contacts[i].separation);
 
-			mManifoldContacts[mNumContacts].mLocalPointA = mTransf0.transformInv(worldPoint);
+			// Offset localPointA along the contact normal by the separation so that
+			// refreshContactPoints (which recomputes separation as dot(transformedA - B, normal))
+			// recovers the correct separation instead of collapsing to ~0.
+			const Vec3V worldPointA = V3ScaleAdd(worldNormal, separation, worldPoint);
+
+			mManifoldContacts[mNumContacts].mLocalPointA = mTransf0.transformInv(worldPointA);
 			mManifoldContacts[mNumContacts].mLocalPointB = mTransf1.transformInv(worldPoint);
 			mManifoldContacts[mNumContacts].mLocalNormalPen = V4SetW(V4Zero(), separation);
 			mManifoldContacts[mNumContacts].mFaceIndex = contacts[i].internalFaceIndex1;

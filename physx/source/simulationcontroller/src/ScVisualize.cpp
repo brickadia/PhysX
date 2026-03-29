@@ -101,8 +101,34 @@ void Sc::ShapeInteraction::visualize(PxRenderOutput& out, PxsContactManagerOutpu
 						}
 						else if(contactNormal != 0.0f)
 						{
-							out << PxU32(PxDebugColor::eARGB_BLUE);
-							out.outputSegment(iter.getContactPoint(), iter.getContactPoint() + iter.getContactNormal() * (scale * contactNormal));
+							const PxVec3& point = iter.getContactPoint();
+							const PxVec3& normal = iter.getContactNormal();
+							const PxReal separation = iter.getSeparation();
+							const PxVec3 normalEnd = point + normal * (scale * contactNormal);
+
+							if(separation < 0.0f)
+							{
+								// Penetrating: red from contact point along penetration depth, blue for the rest
+								const PxVec3 sepEnd = point + normal * separation;
+								out << PxU32(PxDebugColor::eARGB_RED);
+								out.outputSegment(point, sepEnd);
+								out << PxU32(PxDebugColor::eARGB_BLUE);
+								out.outputSegment(sepEnd, normalEnd);
+							}
+							else if(separation > 0.0f)
+							{
+								// Separated: yellow from contact point along separation gap, blue for the rest
+								const PxVec3 sepEnd = point + normal * separation;
+								out << PxU32(PxDebugColor::eARGB_YELLOW);
+								out.outputSegment(point, sepEnd);
+								out << PxU32(PxDebugColor::eARGB_BLUE);
+								out.outputSegment(sepEnd, normalEnd);
+							}
+							else
+							{
+								out << PxU32(PxDebugColor::eARGB_BLUE);
+								out.outputSegment(point, normalEnd);
+							}
 						}
 						else if(contactError != 0.0f)
 						{
