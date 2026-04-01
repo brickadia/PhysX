@@ -131,7 +131,9 @@ static bool generateOrProcessContactsBoxConvex(	const GjkConvex* relativeConvex,
 		//which means we should throw away the existing contacts and do full contact gen
 		const bool fullContactGen = FAllGrtr(FLoad(0.707106781f), V3Dot(localNor, output.normal)) || (manifold.mNumContacts < initialContacts);
 
-		if (fullContactGen || doOverlapTest)
+		// BR: GJK produces a single deepest-penetration point (face center for parallel faces),
+		// which is useless if the manifold already has >1 contact. Force full SAT regen.
+		if (fullContactGen || doOverlapTest || initialContacts > 1)
 		{
 			return fullContactsGenerationBoxConvex(relativeConvex, localConvex, transf0, transf1, manifoldContacts, contactBuffer,
 				manifold, output.normal, output.closestA, output.closestB, contactDist, idtScale, doOverlapTest, renderOutput, toleranceLength);
