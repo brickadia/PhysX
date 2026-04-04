@@ -149,8 +149,8 @@ class CMakePreset:
                     cmakeParam.attrib['value'] + '\"'
             else:
                 cmParam = '-D' + \
-                    cmakeParam.attrib['name'] + '=' + \
-                    cmakeParam.attrib['value']
+                    cmakeParam.attrib['name'] + '=\"' + \
+                    cmakeParam.attrib['value'] + '\"'
             self.cmakeParams.append(cmParam)
     pass
 
@@ -234,6 +234,7 @@ class CMakePreset:
             'vc15': '\"Visual Studio 15 2017\"',
             'vc16': '\"Visual Studio 16 2019\"',
             'vc17': '\"Visual Studio 17 2022\"',
+            'vc18': '\"Visual Studio 18 2026\"',
             'clang': '\"Visual Studio 17 2022\" -T ClangCL'
         }
 
@@ -251,7 +252,6 @@ class CMakePreset:
         elif self.targetPlatform in ['linux', 'linuxAarch64']:
             if self.generator is not None and self.generator == 'ninja':
                 outString = outString + '-G \"Ninja\"'
-                outString = outString + ' -DCMAKE_MAKE_PROGRAM=' + os.environ['PM_ninja_PATH'] + '/ninja'
             else:
                 outString = outString + '-G \"Unix Makefiles\"'
 
@@ -276,7 +276,8 @@ class CMakePreset:
             if self.compiler == 'clang-crosscompile':
                 outString = outString + ' -DCMAKE_TOOLCHAIN_FILE=' + \
                     cmake_modules_root + '/linux/LinuxCrossToolchain.x86_64-unknown-linux-gnu.cmake'
-                outString = outString + ' -DCMAKE_MAKE_PROGRAM=' + os.environ.get('PM_MinGW_PATH') + '/bin/mingw32-make.exe'
+                if self.generator != 'ninja':
+                    outString = outString + ' -DCMAKE_MAKE_PROGRAM=' + os.environ.get('PM_MinGW_PATH') + '/bin/mingw32-make.exe'
             elif self.compiler == 'clang':
                 if os.environ.get('PM_clang_PATH') is not None:
                     outString = outString + ' -DCMAKE_C_COMPILER=' + \
