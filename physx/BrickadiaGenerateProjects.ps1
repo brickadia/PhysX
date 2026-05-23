@@ -23,7 +23,7 @@ $env:PM_PACKAGES_ROOT = "$PhysXRoot\packages"
 # Set up environment before resolving presets
 if ($Platform -eq 'Win64') {
     $env:LLVMInstallDir = 'C:/Program Files/LLVM'
-    $env:LLVMToolsVersion = '22.1.8'
+    $env:LLVMToolsVersion = '22.1.6'
     $env:LLVMIncludeVersion = '22'
 
     if (-not $VS) {
