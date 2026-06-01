@@ -214,6 +214,13 @@ namespace Sc
 		DeformableRigidInteraction() : mCount(0) {}
 	};
 
+	// One queued deferred global pose, consumed by Scene::applyDeferredPoses().
+	struct DeferredPose
+	{
+		BodySim*	mBody;
+		PxTransform	mPose;	// body2World (CoM) frame
+	};
+
 	class Scene : public PxUserAllocated
 	{
 		struct SimpleBodyPair
@@ -530,6 +537,10 @@ namespace Sc
 		//the Actor should register its top level shapes with these.
 					void						removeBody(BodySim&);
 
+	// Deferred global pose worklist (see Scene::applyDeferredPoses).
+					void						setDeferredPose(BodySim& body, const PxTransform& pose);	// add or last-wins overwrite
+					void						removeFromDeferredPoseList(BodySim& body);
+
 					//lists of actors woken up or put to sleep last simulate
 					void						onBodyWakeUp(BodySim* body);
 					void						onBodySleep(BodySim* body);
@@ -641,6 +652,7 @@ namespace Sc
 
 		// subroutines of collideStep/solveStep:
 					void						kinematicsSetup(PxBaseTask* continuation);
+					void						applyDeferredPoses(PxBaseTask* continuation);
 					void						stepSetupSolve(PxBaseTask* continuation);
 
 					void						processNarrowPhaseTouchEvents(PxBaseTask* continuation);
@@ -679,6 +691,8 @@ namespace Sc
 
 					BodyCore**					mActiveKinematicsCopy;
 					PxU32						mActiveKinematicsCopyCapacity;
+
+					PxArray<DeferredPose>		mDeferredPoseBodies;	// Queued deferred poses, drained in applyDeferredPoses()
 
 					// PT: this array used for:
 					// - debug visualization
@@ -917,6 +931,7 @@ namespace Sc
 					PxArray<Cm::DelegateTask<Scene, &Scene::postCCDPass> >					mPostCCDPass;
 
 					Cm::DelegateTask<Scene, &Scene::afterIntegration>					mAfterIntegration;
+					Cm::DelegateTask<Scene, &Scene::applyDeferredPoses>					mApplyDeferredPoses;
 					Cm::DelegateTask<Scene, &Scene::postSolver>							mPostSolver;
 					Cm::DelegateTask<Scene, &Scene::solver>								mSolver;
 					Cm::DelegateTask<Scene, &Scene::updateBodies>						mUpdateBodies;

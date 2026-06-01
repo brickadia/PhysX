@@ -110,6 +110,29 @@ public:
 	virtual		void				setKinematicTarget(const PxTransform& destination) = 0;
 
 	/**
+	\brief Queues a one-off global pose change, applied at the end of the next simulation step.
+
+	A low-cost way to relocate a driven dynamic actor. Unlike setGlobalPose() it only stores the target (no
+	bounds, scene-query or interaction work on the calling thread). Timing matches a kinematic target: the next
+	simulate() runs at the current pose, then the new pose is written at the end of the step via a cheap
+	integrator-style refresh with no contact/constraint interaction invalidation - far cheaper than
+	setGlobalPose() for actors touching many others. This is a teleport: velocities are preserved and none is
+	derived from the move (a freely simulating actor still accumulates gravity velocity during the step).
+
+	One-off: consumed by the next simulate() and not reasserted. getGlobalPose() returns the old pose until
+	fetchResults() completes.
+
+	\note Only valid for non-kinematic dynamic actors in a scene without PxActorFlag::eDISABLE_SIMULATION. For
+	swept, object-pushing motion use setKinematicTarget().
+
+	\param[in] pose		The target pose, in the global frame. <b>Range:</b> rigid body transform.
+	\param[in] autowake	If true, wake the actor and reset its wake counter to #PxSceneDesc::wakeCounterResetValue.
+
+	\see setGlobalPose() setKinematicTarget()
+	*/
+	virtual		void				setDeferredGlobalPose(const PxTransform& pose, bool autowake = true) = 0;
+
+	/**
 	\brief Get target pose of a kinematically controlled dynamic actor.
 
 	\param[out] target Transform to write the target pose to. Only valid if the method returns true.

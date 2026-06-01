@@ -96,6 +96,12 @@ namespace Sc
 			
 		virtual			void					postActorFlagChange(PxU32 oldFlags, PxU32 newFlags)	PX_OVERRIDE;
 						void					postBody2WorldChange();
+
+		// Queues a one-off deferred global pose; the move happens in Scene::applyDeferredPoses(). The pose lives
+		// in the scene worklist, not on the body - only the slot index (PX_INVALID_U32 when not queued) is here.
+						void					setDeferredBody2World(const PxTransform& p);
+		PX_FORCE_INLINE	PxU32					getDeferredPoseListIndex()			const	{ return mDeferredPoseListIndex;		}
+		PX_FORCE_INLINE	void					setDeferredPoseListIndex(PxU32 index)		{ mDeferredPoseListIndex = index;	}
 						void					postSetWakeCounter(PxReal t, bool forceWakeUp);
 						void					postPosePreviewChange(PxU32 posePreviewFlag);  // called when PxRigidBodyFlag::eENABLE_POSE_INTEGRATION_PREVIEW changes
 
@@ -194,6 +200,9 @@ namespace Sc
 		// the separate velmod data if no forces have been set.
 						//PxU16					mInternalFlags;
 						SimStateData*			mSimStateData;
+
+		// Slot in Scene::mDeferredPoseBodies while a deferred pose is queued, else PX_INVALID_U32.
+						PxU32					mDeferredPoseListIndex;
 
 		// Articulation
 						ArticulationSim*		mArticulation;				// NULL if not in an articulation

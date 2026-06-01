@@ -1397,19 +1397,23 @@ void Sc::Scene::advanceStep(PxBaseTask* continuation)
 	{
 		mFinalizationPhase.setContinuation(continuation);
 
-		// Chain: afterIntegration -> [CCD ->] [bodyAcceleration ->] finalizationPhase -> continuation
+		// Deferred poses run after integration, CCD, and body-acceleration capture but before finalization clears the task pool.
+		mApplyDeferredPoses.setContinuation(&mFinalizationPhase);
+
 		if(mBodyAccelerationTask)
-			mBodyAccelerationTask->setContinuation(*mTaskManager, &mFinalizationPhase);
+			mBodyAccelerationTask->setContinuation(*mTaskManager, &mApplyDeferredPoses);
+
+		PxBaseTask* const postIntegrationTask = mBodyAccelerationTask ? mBodyAccelerationTask : &mApplyDeferredPoses;
 
 		if(mPublicFlags & PxSceneFlag::eENABLE_CCD)
 		{
-			mUpdateCCDMultiPass.setContinuation(mBodyAccelerationTask ? mBodyAccelerationTask : &mFinalizationPhase);
+			mUpdateCCDMultiPass.setContinuation(postIntegrationTask);
 			mAfterIntegration.setContinuation(&mUpdateCCDMultiPass);
 			mUpdateCCDMultiPass.removeReference();
 		}
 		else
 		{
-			mAfterIntegration.setContinuation(mBodyAccelerationTask ? mBodyAccelerationTask : &mFinalizationPhase);
+			mAfterIntegration.setContinuation(postIntegrationTask);
 		}
 
 		const bool useGpu = isUsingGpuDynamicsOrBp();
@@ -1440,6 +1444,7 @@ void Sc::Scene::advanceStep(PxBaseTask* continuation)
 		mSecondPassNarrowPhase.setContinuation(&mPostNarrowPhase);
 
 		mFinalizationPhase.removeReference();
+		mApplyDeferredPoses.removeReference();
 		if(mBodyAccelerationTask)
 			mBodyAccelerationTask->removeReference();
 		mAfterIntegration.removeReference();

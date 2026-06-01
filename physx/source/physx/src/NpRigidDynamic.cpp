@@ -127,6 +127,36 @@ void NpRigidDynamic::setGlobalPose(const PxTransform& pose, bool autowake)
 		wakeUpInternal();
 }
 
+void NpRigidDynamic::setDeferredGlobalPose(const PxTransform& pose, bool autowake)
+{
+	NpScene* npScene = getNpScene();
+	NP_WRITE_CHECK(npScene);
+	PX_CHECK_AND_RETURN(pose.isSane(), "PxRigidDynamic::setDeferredGlobalPose: pose is not valid.");
+	PX_CHECK_AND_RETURN(npScene, "PxRigidDynamic::setDeferredGlobalPose: Body must be in a scene!");
+	PX_CHECK_AND_RETURN(!(mCore.getFlags() & PxRigidBodyFlag::eKINEMATIC), "PxRigidDynamic::setDeferredGlobalPose: Body must not be kinematic, use setKinematicTarget instead!");
+	PX_CHECK_AND_RETURN(!(mCore.getActorFlags().isSet(PxActorFlag::eDISABLE_SIMULATION)), "PxRigidDynamic::setDeferredGlobalPose: Not allowed if PxActorFlag::eDISABLE_SIMULATION is set!");
+
+#if PX_CHECKED
+	if(npScene)
+		npScene->checkPositionSanity(*this, pose, "PxRigidDynamic::setDeferredGlobalPose");
+#endif
+
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN(npScene, "PxRigidDynamic::setDeferredGlobalPose() not allowed while simulation is running. Call will be ignored.")
+
+	if (npScene && (npScene->getFlags() & PxSceneFlag::eENABLE_DIRECT_GPU_API) && npScene->isDirectGPUAPIInitialized())
+	{
+		outputError<PxErrorCode::eINVALID_OPERATION>(__LINE__, "PxRigidDynamic::setDeferredGlobalPose(): it is illegal to call this method if PxSceneFlag::eENABLE_DIRECT_GPU_API is enabled!");
+		return;
+	}
+
+	// Actor-space pose -> body (CoM) space, like setGlobalPose.
+	const PxTransform body2World = pose.getNormalized() * mCore.getBody2Actor();
+	scSetDeferredBody2World(body2World);
+
+	if(npScene && autowake && !(mCore.getActorFlags().isSet(PxActorFlag::eDISABLE_SIMULATION)))
+		wakeUpInternal();
+}
+
 PX_FORCE_INLINE void NpRigidDynamic::setKinematicTargetInternal(const PxTransform& targetPose)
 {
 	// The target is actor related. Transform to body related target

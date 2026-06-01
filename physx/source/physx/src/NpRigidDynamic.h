@@ -94,6 +94,7 @@ public:
 
 	// PxRigidDynamic
 	virtual		void				setKinematicTarget(const PxTransform& destination)	PX_OVERRIDE PX_FINAL;
+	virtual		void				setDeferredGlobalPose(const PxTransform& pose, bool autowake)	PX_OVERRIDE PX_FINAL;
 	virtual		bool				getKinematicTarget(PxTransform& target)	const	PX_OVERRIDE PX_FINAL;
 	// Sleeping
 	virtual		bool				isSleeping() const	PX_OVERRIDE PX_FINAL;

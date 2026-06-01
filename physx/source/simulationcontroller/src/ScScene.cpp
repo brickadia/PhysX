@@ -650,6 +650,7 @@ Sc::Scene::Scene(const PxSceneDesc& desc, PxU64 contextID) :
 	mFinalizationPhase				(contextID, this, "ScScene.finalizationPhase"),
 	mUpdateCCDMultiPass				(contextID, this, "ScScene.updateCCDMultiPass"),
 	mAfterIntegration				(contextID, this, "ScScene.afterIntegration"),
+	mApplyDeferredPoses				(contextID, this, "ScScene.applyDeferredPoses"),
 	mPostSolver						(contextID, this, "ScScene.postSolver"),
 	mSolver							(contextID, this, "ScScene.rigidBodySolver"),
 	mUpdateBodies					(contextID, this, "ScScene.updateBodies"),
@@ -1650,6 +1651,10 @@ void Sc::Scene::removeBody(BodySim& body)	//this also notifies any connected joi
 {
 	BodyCore& core = body.getBodyCore();
 
+	// Scrub any pending deferred pose so we don't dereference a destroyed body.
+	if(body.getDeferredPoseListIndex() != PX_INVALID_U32)
+		removeFromDeferredPoseList(body);
+
 	// Remove from sleepBodies array
 	mSleepBodies.erase(&core);
 	PX_ASSERT(!mSleepBodies.contains(&core));
@@ -1665,6 +1670,41 @@ void Sc::Scene::removeBody(BodySim& body)	//this also notifies any connected joi
 
 	markReleasedBodyIDForLostTouch(body.getActorID());
 }
+
+void Sc::Scene::setDeferredPose(BodySim& body, const PxTransform& pose)
+{
+	const PxU32 index = body.getDeferredPoseListIndex();
+	if(index != PX_INVALID_U32)
+	{
+		// Already queued: overwrite (last wins).
+		PX_ASSERT(index < mDeferredPoseBodies.size());
+		PX_ASSERT(mDeferredPoseBodies[index].mBody == &body);
+		mDeferredPoseBodies[index].mPose = pose;
+	}
+	else
+	{
+		body.setDeferredPoseListIndex(mDeferredPoseBodies.size());
+		const DeferredPose entry = { &body, pose };
+		mDeferredPoseBodies.pushBack(entry);
+	}
+}
+
+void Sc::Scene::removeFromDeferredPoseList(BodySim& body)
+{
+	const PxU32 index = body.getDeferredPoseListIndex();
+	PX_ASSERT(index < mDeferredPoseBodies.size());
+	PX_ASSERT(mDeferredPoseBodies[index].mBody == &body);
+
+	const PxU32 last = mDeferredPoseBodies.size() - 1;
+	if(index != last)
+	{
+		mDeferredPoseBodies[index] = mDeferredPoseBodies[last];
+		mDeferredPoseBodies[index].mBody->setDeferredPoseListIndex(index);
+	}
+	mDeferredPoseBodies.popBack();
+	body.setDeferredPoseListIndex(PX_INVALID_U32);
+}
+// applyDeferredPoses() is defined in ScKinematics.cpp, alongside updateKinematicCached().
 
 void Sc::Scene::addConstraint(ConstraintCore& constraint, RigidCore* body0, RigidCore* body1)
 {
