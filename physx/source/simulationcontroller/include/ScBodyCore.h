@@ -140,6 +140,8 @@ namespace Sc
 						void				setKinematicTarget(const PxTransform& p, PxReal wakeCounter);
 						void				invalidateKinematicTarget();
 
+						void				setDeferredBody2World(const PxTransform& p);
+
 		PX_FORCE_INLINE	PxReal				getContactReportThreshold()	const	{ return mCore.contactReportThreshold;	}
 						void				setContactReportThreshold(PxReal t)	{ mCore.contactReportThreshold = t;		}
 

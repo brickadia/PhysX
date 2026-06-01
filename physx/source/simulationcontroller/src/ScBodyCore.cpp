@@ -95,6 +95,19 @@ void Sc::BodyCore::setBody2World(const PxTransform& p)
 	}
 }
 
+void Sc::BodyCore::setDeferredBody2World(const PxTransform& p)
+{
+	PX_ASSERT(p.p.isFinite());
+	PX_ASSERT(p.q.isFinite());
+	PX_ASSERT(!(mCore.mFlags & PxRigidBodyFlag::eKINEMATIC));
+
+	// Queue only; the pose is written at the end of the next step in Scene::applyDeferredPoses(). Waking (if
+	// requested) is handled by the caller (NpRigidDynamic::setDeferredGlobalPose), like setGlobalPose().
+	BodySim* sim = getSim();
+	PX_ASSERT(sim);
+	sim->setDeferredBody2World(p);
+}
+
 void Sc::BodyCore::setCMassLocalPose(const PxTransform& newBody2Actor)
 {
 	const PxTransform oldActor2World = mCore.body2World * mCore.getBody2Actor().getInverse();

@@ -408,6 +408,128 @@ void Sc::Scene::updateKinematicCached(PxBaseTask* continuation)
 
 ///////////////////////////////////////////////////////////////////////////////
 
+namespace
+{
+// Parallel: writes body2World and refreshes transform cache + bounds for a batch of deferred-pose bodies (like
+// ScKinematicShapeUpdateTask). The changed-map bit-set is not thread-safe, so it stays on the serial pass.
+class ScDeferredPoseUpdateTask : public Cm::Task
+{
+	const DeferredPose*		mEntries;
+	const PxU32				mNbEntries;
+	PxsTransformCache&		mCache;
+	Bp::BoundsArray&		mBoundsArray;
+
+	PX_NOCOPY(ScDeferredPoseUpdateTask)
+public:
+	static const PxU32 NbBodiesPerTask = 256;
+
+	ScDeferredPoseUpdateTask(const DeferredPose* entries, PxU32 nbEntries, PxsTransformCache& cache, Bp::BoundsArray& boundsArray, PxU64 contextID) :
+		Cm::Task(contextID), mEntries(entries), mNbEntries(nbEntries), mCache(cache), mBoundsArray(boundsArray)
+	{
+	}
+
+	virtual void runInternal()
+	{
+		const PxU32 nb = mNbEntries;
+		for(PxU32 a=0; a<nb; ++a)
+		{
+			if((a+8) < nb)
+				PxPrefetchLine(mEntries[a+8].mBody);
+
+			Sc::BodySim* body = mEntries[a].mBody;
+			PX_ASSERT(!body->isKinematic());
+
+			// Move the body directly, exactly like the integrator writes an integrated pose.
+			body->getBodyCore().getCore().body2World = mEntries[a].mPose;
+
+			PxU32 nbElems = body->getNbElements();
+			Sc::ElementSim** elems = body->getElements();
+			while(nbElems--)
+			{
+				Sc::ShapeSim* sim = static_cast<Sc::ShapeSim*>(*elems++);
+				sim->updateCached(mCache, mBoundsArray);
+			}
+		}
+	}
+
+	virtual const char* getName() const { return "ScScene.ScDeferredPoseUpdateTask"; }
+};
+
+// Clears the worklist after the update tasks have finished reading it.
+class ScDeferredPoseClearTask : public Cm::Task
+{
+	PxArray<DeferredPose>&	mList;
+
+	PX_NOCOPY(ScDeferredPoseClearTask)
+public:
+	ScDeferredPoseClearTask(PxArray<DeferredPose>& list, PxU64 contextID) : Cm::Task(contextID), mList(list)
+	{
+	}
+
+	virtual void runInternal()			{ mList.clear(); }
+	virtual const char* getName() const	{ return "ScScene.ScDeferredPoseClearTask"; }
+};
+}
+
+// Writes queued deferred poses for dynamic bodies. Its own phase after afterIntegration (so it doesn't race
+// ScAfterIntegrationTask's cache/bounds writeback) and before finalizationPhase. Like kinematics, the step runs
+// at the old pose and the new pose is written at the end via the cheap integrator-style refresh (direct
+// transform-cache + bounds write + broadphase changed-map bit) - no interaction invalidation, unlike setGlobalPose().
+void Sc::Scene::applyDeferredPoses(PxBaseTask* continuation)
+{
+	const PxU32 nb = mDeferredPoseBodies.size();
+	if(!nb)
+		return;
+
+	PX_PROFILE_ZONE("Sim.applyDeferredPoses", mContextId);
+
+	// Serial: changed-map flag (not thread-safe) + sim-controller notify + slot reset. Done before spawning the
+	// tasks, which only touch body2World / cache / bounds (disjoint per shape).
+	PxBitMapPinned& changedAABBMap = mAABBManager->getChangedAABBMgActorHandleMap();
+	mLLContext->getTransformCache().setChangedState();
+	mBoundsArray->setChangedState();
+
+	for(PxU32 i=0; i<nb; i++)
+	{
+		Sc::BodySim* body = mDeferredPoseBodies[i].mBody;
+
+		PxU32 nbElems = body->getNbElements();
+		Sc::ElementSim** elems = body->getElements();
+		while(nbElems--)
+		{
+			Sc::ShapeSim* sim = static_cast<Sc::ShapeSim*>(*elems++);
+			if(sim->getFlags() & PxU32(PxShapeFlag::eSIMULATION_SHAPE | PxShapeFlag::eTRIGGER_SHAPE))
+				changedAABBMap.set(sim->getElementID());
+		}
+
+		mSimulationController->updateDynamic(NULL, body->getNodeIndex());
+
+		body->setDeferredPoseListIndex(PX_INVALID_U32);
+	}
+
+	// Parallel: body2World write + cache/bounds refresh, fanned out. Cleanup task clears the worklist after.
+	Cm::FlushPool& flushPool = mLLContext->getTaskPool();
+	PxsTransformCache& cache = mLLContext->getTransformCache();
+	Bp::BoundsArray& boundsArray = *mBoundsArray;
+
+	ScDeferredPoseClearTask* clearTask = PX_PLACEMENT_NEW(flushPool.allocate(sizeof(ScDeferredPoseClearTask)), ScDeferredPoseClearTask)(mDeferredPoseBodies, mContextId);
+	clearTask->setContinuation(continuation);
+
+	// PT: TASK-CREATION TAG
+	for(PxU32 i=0; i<nb; i += ScDeferredPoseUpdateTask::NbBodiesPerTask)
+	{
+		const PxU32 count = PxMin(nb - i, ScDeferredPoseUpdateTask::NbBodiesPerTask);
+		ScDeferredPoseUpdateTask* task = PX_PLACEMENT_NEW(flushPool.allocate(sizeof(ScDeferredPoseUpdateTask)), ScDeferredPoseUpdateTask)
+			(mDeferredPoseBodies.begin() + i, count, cache, boundsArray, mContextId);
+		task->setContinuation(clearTask);
+		task->removeReference();
+	}
+
+	clearTask->removeReference();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 // PT: TODO: consider using a non-member function for this one
 bool BodySim::deactivateKinematic()
 {

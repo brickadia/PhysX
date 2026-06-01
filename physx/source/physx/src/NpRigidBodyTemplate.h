@@ -187,6 +187,13 @@ public:
 											UPDATE_PVD_PROPERTY_BODY
 										}
 
+	PX_INLINE		void				scSetDeferredBody2World(const PxTransform& p)
+										{
+											PX_ASSERT(!RigidActorTemplateClass::isAPIWriteForbidden());
+											mCore.setDeferredBody2World(p);
+											UPDATE_PVD_PROPERTY_BODY
+										}
+
 	PX_INLINE		void				scSetCMassLocalPose(const PxTransform& newBody2Actor)
 										{
 											PX_ASSERT(!RigidActorTemplateClass::isAPIWriteForbidden());

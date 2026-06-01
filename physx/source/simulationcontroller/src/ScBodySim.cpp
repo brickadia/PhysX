@@ -62,6 +62,7 @@ BodySim::BodySim(Scene& scene, BodyCore& core, bool compound) :
 	mLLBody			(&core.getCore(), PX_FREEZE_INTERVAL),
 	mSimStateData	(NULL),
 	mVelModState	(VMF_GRAVITY_DIRTY),
+	mDeferredPoseListIndex(PX_INVALID_U32),
 	mArticulation	(NULL)
 {
 	core.getCore().numCountedInteractions = 0;
@@ -409,6 +410,12 @@ void BodySim::postBody2WorldChange()
 {
 	mLLBody.saveLastCCDTransform();
 	notifyShapesOfTransformChange();
+}
+
+void BodySim::setDeferredBody2World(const PxTransform& p)
+{
+	PX_ASSERT(!isKinematic());
+	getScene().setDeferredPose(*this, p);	// new slot, or last-wins overwrite if already queued this step
 }
 
 void BodySim::postSetWakeCounter(PxReal t, bool forceWakeUp)

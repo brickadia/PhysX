@@ -1384,15 +1384,19 @@ void Sc::Scene::advanceStep(PxBaseTask* continuation)
 	{
 		mFinalizationPhase.setContinuation(continuation);
 
+		// Deferred dynamic poses run after afterIntegration's writeback (so we don't race ScAfterIntegrationTask)
+		// and before finalizationPhase clears the task pool.
+		mApplyDeferredPoses.setContinuation(&mFinalizationPhase);
+
 		if(mPublicFlags & PxSceneFlag::eENABLE_CCD)
 		{
-			mUpdateCCDMultiPass.setContinuation(&mFinalizationPhase);
+			mUpdateCCDMultiPass.setContinuation(&mApplyDeferredPoses);
 			mAfterIntegration.setContinuation(&mUpdateCCDMultiPass);
 			mUpdateCCDMultiPass.removeReference();
 		}
 		else
 		{
-			mAfterIntegration.setContinuation(&mFinalizationPhase);
+			mAfterIntegration.setContinuation(&mApplyDeferredPoses);
 		}
 
 		const bool useGpu = isUsingGpuDynamicsOrBp();
@@ -1423,6 +1427,7 @@ void Sc::Scene::advanceStep(PxBaseTask* continuation)
 		mSecondPassNarrowPhase.setContinuation(&mPostNarrowPhase);
 
 		mFinalizationPhase.removeReference();
+		mApplyDeferredPoses.removeReference();
 		mAfterIntegration.removeReference();
 		mPostSolver.removeReference();
 		if(useGpu)
