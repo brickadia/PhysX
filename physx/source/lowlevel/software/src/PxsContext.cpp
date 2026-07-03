@@ -515,6 +515,12 @@ void PxsContext::mergeCMDiscreteUpdateResults(PxBaseTask* /*continuation*/)
 		//mContactManagerPatchChangeEvent.combineInPlace<PxBitMap::OR>(threadContext->getLocalPatchChangeMap());
 		mMaxPatches = PxMax(mMaxPatches, threadContext->mMaxPatches);
 
+		if(!threadContext->mRenderBuffer.empty())
+		{
+			mRenderBuffer.append(threadContext->mRenderBuffer);
+			threadContext->mRenderBuffer.clear();
+		}
+
 		threadContext->mMaxPatches = 0;
 	}
 }

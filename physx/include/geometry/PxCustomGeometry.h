@@ -276,11 +276,11 @@ namespace physx
 			virtual bool generateContactsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1,
 				const PxTransform32& pose0, const PxTransform32& pose1,
 				PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength,
-				ContactReceiver& receiver) const
+				ContactReceiver& receiver, PxRenderOutput* renderOutput) const
 			{
 				PX_UNUSED(geom0); PX_UNUSED(geom1); PX_UNUSED(pose0); PX_UNUSED(pose1);
 				PX_UNUSED(contactDistance); PX_UNUSED(meshContactMargin); PX_UNUSED(toleranceLength);
-				PX_UNUSED(receiver);
+				PX_UNUSED(receiver); PX_UNUSED(renderOutput);
 				return false;
 			}
 
