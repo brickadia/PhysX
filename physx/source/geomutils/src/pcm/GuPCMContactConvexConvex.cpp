@@ -60,10 +60,15 @@ static bool fullContactsGenerationConvexConvex(const GjkConvex* relativeConvex, 
 		static_cast<SupportLocal*>(PX_PLACEMENT_NEW(buff1, SupportLocalImpl<ConvexHullV>)(convexHull1, transf1, convexHull1.vertex2Shape, convexHull1.shape2Vertex, idtScale1)));
 
 	PxU32 numContacts = 0;
+	bool grazingSuspect = false;
 
-	if(generateFullContactManifold(polyData0, polyData1, map0, map1, manifoldContacts, numContacts, contactDist, normal, closestA, closestB, convexHull0.getMarginF(), 
-		convexHull1.getMarginF(), doOverlapTest, renderOutput, toleranceLength))
+	if(generateFullContactManifold(polyData0, polyData1, map0, map1, manifoldContacts, numContacts, contactDist, normal, closestA, closestB, convexHull0.getMarginF(),
+		convexHull1.getMarginF(), doOverlapTest, renderOutput, toleranceLength, &grazingSuspect))
 	{
+		// The zero-clip path still emits the GJK seed point below, so the flag must not depend on the clip count.
+		if(grazingSuspect)
+			contactBuffer.grazingSuspect = true;
+
 		if(numContacts > 0)
 		{
 			//reduce contacts

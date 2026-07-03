@@ -851,7 +851,7 @@ bool immediate::PxGenerateContacts(	const PxGeometry* const * geom0, const PxGeo
 void immediate::PxGenerateContactsFast(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1, PxCache& contactCache, PxContactBuffer& contactBuffer,
 	PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength)
 {
-	contactBuffer.count = 0;
+	contactBuffer.reset();
 	PxGeometryType::Enum type0 = geom0.getType();
 	PxGeometryType::Enum type1 = geom1.getType();
 
@@ -869,7 +869,7 @@ void immediate::PxGenerateContactsFast(const PxGeometry& geom0, const PxGeometry
 void immediate::PxGenerateContactsFastPCM(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1, PxCache& contactCache, PxContactBuffer& contactBuffer,
 	PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength, PxRenderOutput* renderOutput)
 {
-	contactBuffer.count = 0;
+	contactBuffer.reset();
 	PxGeometryType::Enum type0 = geom0.getType();
 	PxGeometryType::Enum type1 = geom1.getType();
 

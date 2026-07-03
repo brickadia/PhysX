@@ -35,6 +35,8 @@
 #include "GuContactMethodImpl.h"
 #include "GuPCMContactGenUtil.h"
 
+#define PCM_GRAZING_CONTACT_FILTER 1
+
 using namespace physx;
 using namespace Gu;
 using namespace aos;
@@ -635,9 +637,8 @@ static PxU32 doBoxBoxGenerateContacts(const Vec3VArg box0Extent, const Vec3VArg 
 
 	FStore(minOverlap, &outMinOverlap);
 
-	// Grazing contact filter: check if any non-contact axis has overlap below threshold.
-	// If another axis shows the boxes barely overlap, this is a grazing edge/corner
-	// contact — suppress it.
+#if PCM_GRAZING_CONTACT_FILTER
+	// Flags manifolds where a non-winning axis nearly separates (seam-grazing suspect).
 	{
 		const Vec3V axes[6] = {
 			transform0.getCol0(), transform0.getCol1(), transform0.getCol2(),
@@ -676,10 +677,11 @@ static PxU32 doBoxBoxGenerateContacts(const Vec3VArg box0Extent, const Vec3VArg 
 			if(overlapF < grazingThreshold)
 			{
 				outGrazingContact = true;
-				return true;
+				break;
 			}
 		}
 	}
+#endif
 
 	PxMatTransformV newTransformV;
 	const Vec3V axis00 = transform0.getCol0();
@@ -956,12 +958,16 @@ bool Gu::pcmContactBoxBox(GU_CONTACT_METHOD_ARGS)
 		float satMinOverlap = 0.0f;
 		const bool generateResult = doBoxBoxGenerateContacts(boxExtents0, boxExtents1, transfV0, transfV1, contactDist, manifoldContacts, numContacts, grazingContact, satMinOverlap);
 
-		if(!generateResult || grazingContact)
+		if(!generateResult)
 		{
 			manifold.clearManifold();
 		}
 		else
 		{
+			// Detection only flags; classification/correction happens in the brick compound layer.
+			if(grazingContact)
+				contactBuffer.grazingSuspect = true;
+
 			if(numContacts > 0)
 			{
 				manifold.addBatchManifoldContacts(manifoldContacts, numContacts, toleranceLength);
