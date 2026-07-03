@@ -27,6 +27,7 @@
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
 #include "geomutils/PxContactBuffer.h"
+#include "foundation/PxSort.h"
 #include "GuVecBox.h"
 #include "GuBounds.h"
 #include "GuContactMethodImpl.h"
@@ -54,10 +55,11 @@ struct ContactReceiverImpl : PxCustomGeometry::Callbacks::ContactReceiver
 	const PxTransformV& mTransf1;
 	FloatV mSqReplaceBreakingThreshold;
 	FloatV mAcceptanceEpsilon;
+	FloatV mPlaneTolerance;
 
 	ContactReceiverImpl(MultiplePersistentContactManifold& multiManifold,
 		const PxTransformV& transf0, const PxTransformV& transf1,
-		const FloatV& replaceBreakingThreshold)
+		const FloatV& replaceBreakingThreshold, PxReal toleranceLength)
 		: mNumContacts(0)
 		, mNumContactPatch(0)
 		, mMultiManifold(multiManifold)
@@ -66,9 +68,171 @@ struct ContactReceiverImpl : PxCustomGeometry::Callbacks::ContactReceiver
 	{
 		mSqReplaceBreakingThreshold = FMul(replaceBreakingThreshold, replaceBreakingThreshold);
 		mAcceptanceEpsilon = FLoad(0.996f);
+		mPlaneTolerance = FLoad(toleranceLength * 0.0075f);
 
 		for(PxU32 i = 0; i < PCM_MAX_CONTACTPATCH_SIZE; ++i)
 			mContactPatchPtr[i] = &mContactPatch[i];
+	}
+
+	static constexpr PxU32 MAX_REDUCE_CONTACTS = MAX_MANIFOLD_CONTACTS + GU_SINGLE_MANIFOLD_CACHE_SIZE;
+
+	// Deepest contact plus the convex hull of the patch footprint, so every outer corner survives reduction.
+	PxU32 reduceBatchPreservingBoundary(MeshPersistentContact* contacts, PxU32 count, const Vec3VArg planeNormal, PxU32 budget) const
+	{
+		PX_ASSERT(count <= MAX_REDUCE_CONTACTS);
+		PX_ASSERT(budget >= 2 && budget <= 32);
+
+		PxVec3 normal;
+		V3StoreU(planeNormal, normal);
+
+		PxVec3 tangent0 = PxAbs(normal.x) < 0.707f ? PxVec3(1.f, 0.f, 0.f).cross(normal) : PxVec3(0.f, 1.f, 0.f).cross(normal);
+		tangent0.normalize();
+		const PxVec3 tangent1 = normal.cross(tangent0);
+
+		float px[MAX_REDUCE_CONTACTS];
+		float py[MAX_REDUCE_CONTACTS];
+		float pens[MAX_REDUCE_CONTACTS];
+		bool chosen[MAX_REDUCE_CONTACTS];
+
+		for(PxU32 i = 0; i < count; ++i)
+		{
+			PxVec3 p;
+			V3StoreU(contacts[i].mLocalPointB, p);
+			px[i] = p.dot(tangent0);
+			py[i] = p.dot(tangent1);
+			FStore(V4GetW(contacts[i].mLocalNormalPen), &pens[i]);
+			chosen[i] = false;
+		}
+
+		PxU32 deepest = 0;
+		for(PxU32 i = 1; i < count; ++i)
+		{
+			if(pens[i] < pens[deepest])
+				deepest = i;
+		}
+		chosen[deepest] = true;
+		PxU32 numChosen = 1;
+
+		// Monotone chain convex hull; popping collinear points keeps true corners only
+		PxU32 order[MAX_REDUCE_CONTACTS];
+		for(PxU32 i = 0; i < count; ++i)
+			order[i] = i;
+
+		PxSort(order, count, [&](PxU32 a, PxU32 b) { return px[a] < px[b] || (px[a] == px[b] && py[a] < py[b]); });
+
+		const auto cross2 = [&](PxU32 o, PxU32 a, PxU32 b) -> float
+		{
+			return (px[a] - px[o]) * (py[b] - py[o]) - (py[a] - py[o]) * (px[b] - px[o]);
+		};
+
+		PxU32 hull[MAX_REDUCE_CONTACTS * 2];
+		PxU32 numHull = 0;
+
+		for(PxU32 i = 0; i < count; ++i)
+		{
+			const PxU32 idx = order[i];
+			while(numHull >= 2 && cross2(hull[numHull - 2], hull[numHull - 1], idx) <= 0.f)
+				numHull--;
+			hull[numHull++] = idx;
+		}
+
+		const PxU32 lowerEnd = numHull + 1;
+		for(PxI32 i = PxI32(count) - 2; i >= 0; --i)
+		{
+			const PxU32 idx = order[PxU32(i)];
+			while(numHull >= lowerEnd && cross2(hull[numHull - 2], hull[numHull - 1], idx) <= 0.f)
+				numHull--;
+			hull[numHull++] = idx;
+		}
+		numHull--;	// last hull point duplicates the first
+
+		// The deepest is usually itself a hull corner; only an interior deepest costs the hull a slot
+		PxU32 hullChosen = 0;
+		for(PxU32 i = 0; i < numHull; ++i)
+			hullChosen += chosen[hull[i]] ? 1u : 0u;
+
+		if(numHull - hullChosen <= budget - numChosen)
+		{
+			for(PxU32 i = 0; i < numHull; ++i)
+			{
+				const PxU32 idx = hull[i];
+				if(!chosen[idx])
+				{
+					chosen[idx] = true;
+					numChosen++;
+				}
+			}
+		}
+		else
+		{
+			// Hull bigger than the budget: farthest point sampling keeps the extremes evenly spaced
+			float minDist[MAX_REDUCE_CONTACTS];
+			PxU32 last = 0xffffffff;
+
+			for(PxU32 i = 0; i < numHull; ++i)
+			{
+				minDist[i] = PX_MAX_F32;
+				if(chosen[hull[i]])
+					last = hull[i];
+			}
+
+			if(last == 0xffffffff)
+			{
+				last = hull[0];
+				chosen[last] = true;
+				numChosen++;
+			}
+
+			while(numChosen < budget)
+			{
+				PxU32 best = 0xffffffff;
+				float bestDist = -1.f;
+
+				for(PxU32 i = 0; i < numHull; ++i)
+				{
+					const PxU32 idx = hull[i];
+					const float d = (px[idx] - px[last]) * (px[idx] - px[last]) + (py[idx] - py[last]) * (py[idx] - py[last]);
+					minDist[i] = PxMin(minDist[i], d);
+
+					if(!chosen[idx] && minDist[i] > bestDist)
+					{
+						bestDist = minDist[i];
+						best = idx;
+					}
+				}
+
+				if(best == 0xffffffff)
+					break;
+
+				chosen[best] = true;
+				numChosen++;
+				last = best;
+			}
+		}
+
+		while(numChosen < budget)
+		{
+			PxU32 best = 0xffffffff;
+			for(PxU32 i = 0; i < count; ++i)
+			{
+				if(!chosen[i] && (best == 0xffffffff || pens[i] < pens[best]))
+					best = i;
+			}
+
+			if(best == 0xffffffff)
+				break;
+
+			chosen[best] = true;
+			numChosen++;
+		}
+
+		PxU32 write = 0;
+		for(PxU32 i = 0; i < count; ++i)
+		{
+			if(chosen[i])
+				contacts[write++] = contacts[i];
+		}
+		return write;
 	}
 
 	virtual bool reportContacts(const PxContactPoint* contacts, PxU32 numContacts, const PxVec3& patchNormal) override
@@ -103,7 +267,8 @@ struct ContactReceiverImpl : PxCustomGeometry::Callbacks::ContactReceiver
 
 		if(newContacts > GU_SINGLE_MANIFOLD_SINGLE_POLYGONE_CACHE_SIZE)
 		{
-			mNumContacts = previousNumContacts + SinglePersistentContactManifold::reduceContacts(&mManifoldContacts[previousNumContacts], newContacts);
+			const Vec3V localNormal = mTransf1.rotateInv(V3LoadU(patchNormal));
+			mNumContacts = previousNumContacts + reduceBatchPreservingBoundary(&mManifoldContacts[previousNumContacts], newContacts, localNormal, GU_SINGLE_MANIFOLD_SINGLE_POLYGONE_CACHE_SIZE);
 		}
 
 		for(PxU32 i = previousNumContacts; i < mNumContacts; ++i)
@@ -114,6 +279,9 @@ struct ContactReceiverImpl : PxCustomGeometry::Callbacks::ContactReceiver
 				const FloatV d = V3Dot(dif, dif);
 				if(FAllGrtr(mSqReplaceBreakingThreshold, d))
 				{
+					// Keep the deeper contact, matching the patch-merge dedup below.
+					if(FAllGrtr(V4GetW(mManifoldContacts[i].mLocalNormalPen), V4GetW(mManifoldContacts[j].mLocalNormalPen)))
+						mManifoldContacts[i] = mManifoldContacts[j];
 					mManifoldContacts[j] = mManifoldContacts[mNumContacts - 1];
 					mNumContacts--;
 					j--;
@@ -134,7 +302,9 @@ struct ContactReceiverImpl : PxCustomGeometry::Callbacks::ContactReceiver
 		bool foundPatch = false;
 		if(mNumContactPatch > 0)
 		{
-			if(FAllGrtr(V3Dot(mContactPatch[mNumContactPatch - 1].mPatchNormal, localPatchNormal), mAcceptanceEpsilon))
+			// Same-normal patches on distinct parallel planes (stacked brick layers) must stay separate.
+			if(FAllGrtr(V3Dot(mContactPatch[mNumContactPatch - 1].mPatchNormal, localPatchNormal), mAcceptanceEpsilon)
+				&& FAllGrtr(mPlaneTolerance, FAbs(FSub(mContactPatch[mNumContactPatch - 1].mPatchMaxPen, maxPen))))
 			{
 				PCMContactPatch& patch = mContactPatch[mNumContactPatch - 1];
 
@@ -177,6 +347,166 @@ struct ContactReceiverImpl : PxCustomGeometry::Callbacks::ContactReceiver
 		return mNumContacts < MAX_MANIFOLD_CONTACTS;
 	}
 
+	// refineContactPatchConnective with an added coplanarity requirement, so parallel planes keep their own manifolds.
+	void refinePatchesCoplanar()
+	{
+		for(PxU32 i = 0; i < mNumContactPatch; ++i)
+		{
+			PCMContactPatch* patch = mContactPatchPtr[i];
+			patch->mRoot = patch;
+			patch->mEndPatch = patch;
+			patch->mTotalSize = patch->mEndIndex - patch->mStartIndex;
+			patch->mNextPatch = NULL;
+
+			for(PxU32 j = i; j > 0; --j)
+			{
+				PCMContactPatch* other = mContactPatchPtr[j - 1];
+				const FloatV d = V3Dot(patch->mPatchNormal, other->mRoot->mPatchNormal);
+				if(FAllGrtrOrEq(d, mAcceptanceEpsilon)
+					&& FAllGrtr(mPlaneTolerance, FAbs(FSub(patch->mPatchMaxPen, other->mRoot->mPatchMaxPen))))
+				{
+					other->mNextPatch = patch;
+					other->mRoot->mEndPatch = patch;
+					patch->mRoot = other->mRoot;
+					other->mRoot->mTotalSize += patch->mEndIndex - patch->mStartIndex;
+					break;
+				}
+			}
+		}
+	}
+
+	// Plane-aware replacement for addManifoldContactPoints, whose incremental branch matches by normal only and collapses parallel planes.
+	void assignPatchesToManifolds(PxU32 maxContactsPerManifold)
+	{
+		for(PxU32 i = 0; i < mNumContactPatch; ++i)
+		{
+			PCMContactPatch* patch = mContactPatchPtr[i];
+
+			if(patch->mRoot != patch)
+				continue;
+
+			MeshPersistentContact gathered[MAX_REDUCE_CONTACTS];
+			PxU32 numGathered = 0;
+
+			for(const PCMContactPatch* current = patch; current; current = current->mNextPatch)
+			{
+				for(PxU32 k = current->mStartIndex; k < current->mEndIndex && numGathered < MAX_MANIFOLD_CONTACTS; ++k)
+					gathered[numGathered++] = mManifoldContacts[k];
+			}
+
+			if(numGathered == 0)
+				continue;
+
+			SinglePersistentContactManifold* target = NULL;
+			PxU32 targetIndex = 0;
+			SinglePersistentContactManifold* sameNormal = NULL;
+			PxU32 sameNormalIndex = 0;
+
+			for(PxU32 j = 0; j < mMultiManifold.mNumManifolds; ++j)
+			{
+				SinglePersistentContactManifold& manifold = *mMultiManifold.getManifold(j);
+
+				if(manifold.mNumContacts == 0)
+					continue;
+
+				if(FAllGrtr(mAcceptanceEpsilon, V3Dot(patch->mPatchNormal, manifold.getLocalNormal())))
+					continue;
+
+				if(!sameNormal)
+				{
+					sameNormal = &manifold;
+					sameNormalIndex = j;
+				}
+
+				if(FAllGrtr(mPlaneTolerance, FAbs(FSub(patch->mPatchMaxPen, FLoad(mMultiManifold.mMaxPen[mMultiManifold.mManifoldIndices[j]])))))
+				{
+					target = &manifold;
+					targetIndex = j;
+					break;
+				}
+			}
+
+			bool bIsFresh = false;
+			bool bMixedPlanes = false;
+
+			if(!target)
+			{
+				if(SinglePersistentContactManifold* fresh = mMultiManifold.getEmptyManifold())
+				{
+					fresh->mNumContacts = 0;
+					target = fresh;
+					bIsFresh = true;
+				}
+				else if(sameNormal)
+				{
+					target = sameNormal;
+					targetIndex = sameNormalIndex;
+					bMixedPlanes = true;
+				}
+				else
+				{
+					// Patches are depth sorted, so only the shallowest are dropped
+					continue;
+				}
+			}
+
+			for(PxU32 k = 0; k < target->mNumContacts && numGathered < MAX_REDUCE_CONTACTS; ++k)
+				gathered[numGathered++] = target->mContactPoints[k];
+
+			FloatV minPen = V4GetW(gathered[0].mLocalNormalPen);
+
+			for(PxU32 k = 1; k < numGathered; ++k)
+				minPen = FMin(minPen, V4GetW(gathered[k].mLocalNormalPen));
+
+			// Near-plane-wins only for the slot-exhaustion merge; a tilted footprint on one plane spans more than mPlaneTolerance.
+			if(bMixedPlanes)
+			{
+				const FloatV penLimit = FAdd(minPen, mPlaneTolerance);
+				PxU32 write = 0;
+
+				for(PxU32 k = 0; k < numGathered; ++k)
+				{
+					if(FAllGrtrOrEq(penLimit, V4GetW(gathered[k].mLocalNormalPen)))
+						gathered[write++] = gathered[k];
+				}
+				numGathered = write;
+			}
+
+			for(PxU32 a = 0; a < numGathered; ++a)
+			{
+				for(PxU32 b = a + 1; b < numGathered; ++b)
+				{
+					const Vec3V dif = V3Sub(gathered[b].mLocalPointB, gathered[a].mLocalPointB);
+
+					if(FAllGrtr(mSqReplaceBreakingThreshold, V3Dot(dif, dif)))
+					{
+						if(FAllGrtr(V4GetW(gathered[a].mLocalNormalPen), V4GetW(gathered[b].mLocalNormalPen)))
+							gathered[a] = gathered[b];
+						gathered[b] = gathered[--numGathered];
+						b--;
+					}
+				}
+			}
+
+			if(numGathered > maxContactsPerManifold)
+				numGathered = reduceBatchPreservingBoundary(gathered, numGathered, patch->mPatchNormal, maxContactsPerManifold);
+
+			for(PxU32 k = 0; k < numGathered; ++k)
+				target->mContactPoints[k] = gathered[k];
+			target->mNumContacts = numGathered;
+
+			if(bIsFresh)
+			{
+				FStore(minPen, &mMultiManifold.mMaxPen[mMultiManifold.mManifoldIndices[mMultiManifold.mNumManifolds]]);
+				mMultiManifold.mNumManifolds++;
+			}
+			else
+			{
+				FStore(minPen, &mMultiManifold.mMaxPen[mMultiManifold.mManifoldIndices[targetIndex]]);
+			}
+		}
+	}
+
 	void processContacts(PxU8 maxContactsPerManifold, bool isNotLastPatch)
 	{
 		if(mNumContacts == 0)
@@ -203,9 +533,8 @@ struct ContactReceiverImpl : PxCustomGeometry::Callbacks::ContactReceiver
 			}
 		}
 
-		mMultiManifold.refineContactPatchConnective(mContactPatchPtr, mNumContactPatch, mManifoldContacts, mAcceptanceEpsilon);
-		mMultiManifold.reduceManifoldContactsInDifferentPatches(mContactPatchPtr, mNumContactPatch, mManifoldContacts, mNumContacts, mSqReplaceBreakingThreshold);
-		mMultiManifold.addManifoldContactPoints(mManifoldContacts, mNumContacts, mContactPatchPtr, mNumContactPatch, mSqReplaceBreakingThreshold, mAcceptanceEpsilon, maxContactsPerManifold);
+		refinePatchesCoplanar();
+		assignPatchesToManifolds(maxContactsPerManifold);
 
 		mNumContacts = 0;
 		mNumContactPatch = 0;
@@ -250,14 +579,29 @@ static bool pcmContactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 		const PxTransformV transf1 = loadTransformA(transform1);
 		const PxTransformV curRTrans = transf1.transformInv(transf0);
 
-		if(multiManifold.invalidate(curRTrans, FLoad(breakingThreshold)))
+		const auto countContacts = [&multiManifold]() -> PxU32
+		{
+			PxU32 total = 0;
+			for(PxU32 i = 0; i < multiManifold.mNumManifolds; ++i)
+				total += multiManifold.getManifold(i)->mNumContacts;
+			return total;
+		};
+
+		// BR: any contact pruned by refresh must force regen, or it stays gone until the transform gate trips.
+		const PxMatTransformV aToB(curRTrans);
+		const FloatV projectBreakingThreshold = FLoad(breakingThreshold * 0.8f);
+		const PxU32 initialContacts = countContacts();
+		multiManifold.refreshManifold(aToB, projectBreakingThreshold, FLoad(params.mContactDistance));
+		const bool bLostContacts = countContacts() != initialContacts;
+
+		if(bLostContacts || multiManifold.invalidate(curRTrans, FLoad(breakingThreshold)))
 		{
 			multiManifold.initialize();
 			multiManifold.setRelativeTransform(curRTrans);
 
 			const FloatV replaceBreakingThreshold = FLoad(breakingThreshold * 0.05f);
 
-			ContactReceiverImpl receiver(multiManifold, transf0, transf1, replaceBreakingThreshold);
+			ContactReceiverImpl receiver(multiManifold, transf0, transf1, replaceBreakingThreshold, params.mToleranceLength);
 
 			customGeom.callbacks->generateContactsMultiManifold(
 				customGeom, otherGeom, transform0, transform1,
@@ -265,12 +609,6 @@ static bool pcmContactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 				receiver, renderOutput);
 
 			receiver.processContacts(GU_SINGLE_MANIFOLD_CACHE_SIZE, false);
-		}
-		else
-		{
-			const PxMatTransformV aToB(curRTrans);
-			const FloatV projectBreakingThreshold = FLoad(breakingThreshold * 0.8f);
-			multiManifold.refreshManifold(aToB, projectBreakingThreshold, FLoad(params.mContactDistance));
 		}
 
 #if PCM_LOW_LEVEL_DEBUG
