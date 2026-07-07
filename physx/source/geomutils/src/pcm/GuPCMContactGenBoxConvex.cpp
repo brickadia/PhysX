@@ -561,10 +561,9 @@ bool Gu::generateFullContactManifold(const PolygonalData& polyData0, const Polyg
 		FloatV minOverlap = FMax();
 		Vec3V minNormal = V3Zero();
 
-		PX_ASSERT(polyData0.mNbPolygons <= 128);
-		PX_ASSERT(polyData1.mNbPolygons <= 128);
-		float overlaps0[128];
-		float overlaps1[128];
+		// ConvexHullData::mNbPolygons is PxU8, so 256 bounds any cooked hull.
+		float overlaps0[256];
+		float overlaps1[256];
 
 		PxU32 feature0;
 		//in the local space of polyData0, minNormal is in polyData0 space
@@ -761,8 +760,8 @@ EdgeTest:
 			FloatV grazingMinOverlap = FMax();
 			Vec3V grazingMinNormal = V3Zero();
 
-			float grazingOverlaps0[128];
-			float grazingOverlaps1[128];
+			float grazingOverlaps0[256];
+			float grazingOverlaps1[256];
 
 			PxU32 grazingFeature0;
 			PxU32 grazingFeature1;
