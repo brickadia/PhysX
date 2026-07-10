@@ -473,6 +473,36 @@ public:
 		mLostTouchTask->removeReference();
 	}
 };
+
+// Toggle for A/B profiling: run each island batch's solver prepare on a worker task instead of serially.
+static bool gTGSParallelIslandPrepare = true;
+
+// Runs one island batch's solveIsland (heavy prepare + solve-chain spawn) on a worker thread.
+class SolveIslandSpawnTGSTask : public Cm::Task
+{
+	DynamicsTGSContext&			mContext;
+	SolverIslandObjectsStep		mObjects;
+	PxsIslandIndices			mCounts;
+	PxU32						mSolverBodyOffset;
+	PxBaseTask*					mMergeTask;
+
+	PX_NOCOPY(SolveIslandSpawnTGSTask)
+public:
+
+	SolveIslandSpawnTGSTask(DynamicsTGSContext& context, const SolverIslandObjectsStep& objects, const PxsIslandIndices& counts,
+		PxU32 solverBodyOffset, PxBaseTask* mergeTask, PxU64 contextID) :
+		Cm::Task(contextID), mContext(context), mObjects(objects), mCounts(counts), mSolverBodyOffset(solverBodyOffset),
+		mMergeTask(mergeTask)
+	{
+	}
+
+	virtual const char* getName() const { return "SolveIslandSpawnTask"; }
+
+	virtual void runInternal()
+	{
+		mContext.solveIslandFromTask(mObjects, mCounts, mSolverBodyOffset, mMergeTask);
+	}
+};
 }
 
 void DynamicsTGSContext::update(Cm::FlushPool& /*flushPool*/, PxBaseTask* continuation, PxBaseTask* /*postPartitioningTask*/, PxBaseTask* lostTouchTask,
@@ -575,6 +605,12 @@ void DynamicsTGSContext::update(Cm::FlushPool& /*flushPool*/, PxBaseTask* contin
 	task->removeReference();
 }
 
+void DynamicsTGSContext::solveIslandFromTask(const SolverIslandObjectsStep& objects, const PxsIslandIndices& counts, PxU32 solverBodyOffset,
+	PxBaseTask* continuation)
+{
+	solveIsland(objects, counts, solverBodyOffset, mSolverBodyRemapTable.begin(), mMaterialManager, mOutputIterator, continuation);
+}
+
 void DynamicsTGSContext::updatePostKinematic(PxBaseTask* continuation, PxBaseTask* lostTouchTask, PxU32 maxLinks)
 {
 	const IG::IslandSim& islandSim = mIslandManager.getAccurateIslandSim();
@@ -650,8 +686,19 @@ void DynamicsTGSContext::updatePostKinematic(PxBaseTask* continuation, PxBaseTas
 		counts.contactManagers	= nbContactManagers;
 		counts.constraints		= nbConstraints;
 		
-		solveIsland(objectStarts, counts,
-			mKinematicCount + currentBodyIndex, mSolverBodyRemapTable.begin(), mMaterialManager, mOutputIterator, mergeTask);
+		if(gTGSParallelIslandPrepare && !mUseEnhancedDeterminism)
+		{
+			SolveIslandSpawnTGSTask* spawnTask = PX_PLACEMENT_NEW(mTaskPool.allocate(sizeof(SolveIslandSpawnTGSTask)), SolveIslandSpawnTGSTask)
+				(*this, objectStarts, counts, mKinematicCount + currentBodyIndex, mergeTask, mContextID);
+			spawnTask->setContinuation(mergeTask);
+			spawnTask->removeReference();
+		}
+		else
+		{
+			solveIsland(objectStarts, counts,
+				mKinematicCount + currentBodyIndex, mSolverBodyRemapTable.begin(), mMaterialManager, mOutputIterator,
+				mergeTask);
+		}
 
 		currentBodyIndex += nbBodies;
 		currentArticulation += nbArticulations;

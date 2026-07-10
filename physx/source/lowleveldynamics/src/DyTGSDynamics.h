@@ -161,6 +161,10 @@ public:
 	//~Context
 
 					void				updatePostKinematic(PxBaseTask* continuation, PxBaseTask* lostTouchTask, PxU32 maxLinks);
+
+				// Worker-task entry for one island batch's solver preparation and solve-chain spawn.
+				void				solveIslandFromTask(const SolverIslandObjectsStep& objects, const PxsIslandIndices& counts, PxU32 solverBodyOffset,
+										PxBaseTask* continuation);
 protected:
 
 	// PT: TODO: the thread stats are missing for TGS
