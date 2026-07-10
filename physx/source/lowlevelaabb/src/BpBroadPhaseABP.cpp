@@ -2511,6 +2511,9 @@ void ABP_CompleteBoxPruningStartTask::releaseMemory()
 	PX_FREE(mBoxListXBuffer);
 }
 
+// Toggle for A/B profiling of the parallel box-pruning split heuristic.
+static bool gABPUseMeanSplit = true;
+
 void ABP_CompleteBoxPruningStartTask::run()
 {
 //	printf("Running ABP_CompleteBoxPruningStartTask\n");
@@ -2537,8 +2540,30 @@ void ABP_CompleteBoxPruningStartTask::run()
 
 		const PxVec3& mergedMin = mBounds.minimum;
 		const PxVec3& mergedMax = mBounds.maximum;
-		const float limitY = (mergedMax[1] + mergedMin[1]) * 0.5f;
-		const float limitZ = (mergedMax[2] + mergedMin[2]) * 0.5f;
+		float limitY = (mergedMax[1] + mergedMin[1]) * 0.5f;
+		float limitZ = (mergedMax[2] + mergedMin[2]) * 0.5f;
+
+		// Split at the centroid of box centers (robust to outlier fliers) rather than the bounds midpoint.
+		if(gABPUseMeanSplit && nb)
+		{
+			float sumY = 0.0f;
+			float sumZ = 0.0f;
+			for(PxU32 i=0;i<nb;i++)
+			{
+	#ifdef ABP_SIMD_OVERLAP
+				const float minY = -listYZ[i].mMinY;
+				const float minZ = -listYZ[i].mMinZ;
+	#else
+				const float minY = listYZ[i].mMinY;
+				const float minZ = listYZ[i].mMinZ;
+	#endif
+				sumY += (minY + listYZ[i].mMaxY) * 0.5f;
+				sumZ += (minZ + listYZ[i].mMaxZ) * 0.5f;
+			}
+			const float inv = 1.0f / float(nb);
+			limitY = sumY * inv;
+			limitZ = sumZ * inv;
+		}
 
 		for(PxU32 i=0;i<NB_BUCKETS;i++)
 			Counters[i] = 0;
