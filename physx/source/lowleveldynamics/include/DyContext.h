@@ -59,6 +59,7 @@ struct PxvSimStats;
 class PxsContactManager;
 struct PxsContactManagerOutputCounts;
 class PxvNphaseImplementationContext;
+struct PxsWaterVolume;
 
 namespace Dy
 {
@@ -126,6 +127,11 @@ public:
 	PX_FORCE_INLINE PxReal					getLengthScale()					const	{ return mLengthScale;	}
 	PX_FORCE_INLINE const PxVec3&			getGravity()						const	{ return mGravity;		}
 	PX_FORCE_INLINE	PxU64					getContextId()						const	{ return mContextID;	}
+
+	// The array is owned by Sc::Scene and immutable while simulating.
+	PX_FORCE_INLINE void					setWaterVolumes(const PxsWaterVolume* volumes, PxU32 count)	{ mWaterVolumes = volumes; mNbWaterVolumes = count;	}
+	PX_FORCE_INLINE const PxsWaterVolume*	getWaterVolumes()					const	{ return mWaterVolumes;		}
+	PX_FORCE_INLINE PxU32					getNbWaterVolumes()					const	{ return mNbWaterVolumes;	}
 
 	PX_FORCE_INLINE ThresholdStream&		getThresholdStream()						{ return mThresholdStream;				}
 	PX_FORCE_INLINE ThresholdStreamMapped&	getForceChangedThresholdStream()			{ return mForceChangedThresholdStream;	}
@@ -214,9 +220,10 @@ protected:
 		mConstraintWriteBackPool	(allocator),
 		mSimStats					(simStats),
 		mContextID					(contextID),
-		mBodyStateDirty				(false)
-	{
-	}
+		mBodyStateDirty				(false),
+		mWaterVolumes				(NULL),
+		mNbWaterVolumes				(0)
+	{}
 
 	virtual ~Context() {}
 
@@ -315,6 +322,9 @@ protected:
 	PxsExternalAccelerationProvider mRigidExternalAccelerations;
 
 	bool mBodyStateDirty;
+
+	const PxsWaterVolume*	mWaterVolumes;
+	PxU32					mNbWaterVolumes;
 };
 
 Context* createDynamicsContext(	PxcNpMemBlockPool* memBlockPool, Cm::FlushPool& taskPool, PxvSimStats& simStats,

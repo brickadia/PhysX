@@ -140,6 +140,13 @@ namespace Sc
 						void				setKinematicTarget(const PxTransform& p, PxReal wakeCounter);
 						void				invalidateKinematicTarget();
 
+		PX_FORCE_INLINE	PxReal				getBuoyancyScale()			const	{ return mBuoyancyScale;		}
+						void				setBuoyancyScale(PxReal scale);
+		PX_FORCE_INLINE	PxU32				getWaterVolumeOverride()	const	{ return mWaterVolumeOverride;	}
+						void				setWaterVolumeOverride(PxU32 handle);
+		PX_FORCE_INLINE	void				setWaterVolumeOverrideInternal(PxU32 handle)	{ mWaterVolumeOverride = handle;	}
+						bool				isTouchingWater() const;
+
 						void				setDeferredBody2World(const PxTransform& p);
 
 		PX_FORCE_INLINE	PxReal				getContactReportThreshold()	const	{ return mCore.contactReportThreshold;	}
@@ -181,6 +188,9 @@ namespace Sc
 						void				setFixedBaseLink(bool value);
 	private:
 						PX_ALIGN_PREFIX(16) PxsBodyCore mCore PX_ALIGN_SUFFIX(16);
+
+						PxReal				mBuoyancyScale;
+						PxU32				mWaterVolumeOverride;
 	};
 
 } // namespace Sc

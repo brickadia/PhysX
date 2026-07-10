@@ -48,6 +48,7 @@ namespace Bp
 	class BoundsArray;
 }
 	struct PxsExternalAccelerationProvider;
+	struct PxsShapeCore;
 	class PxsTransformCache;
 namespace Sc
 {
@@ -189,6 +190,15 @@ namespace Sc
 
 						void					addToSpeculativeCCDMap();
 						void					removeFromSpeculativeCCDMap();
+
+		// Buoyancy / water volumes
+						void					rebuildBuoyancyShapes();
+						void					resolveWaterVolumeFromInteractions();
+						void					refreshWaterVolumeIndex();
+		PX_FORCE_INLINE	BodySim*				getWaterVolumeNext()					const	{ return mWaterVolumeNext;	}
+		PX_FORCE_INLINE	BodySim*				getWaterVolumePrev()					const	{ return mWaterVolumePrev;	}
+		PX_FORCE_INLINE	void					setWaterVolumeNext(BodySim* body)				{ mWaterVolumeNext = body;	}
+		PX_FORCE_INLINE	void					setWaterVolumePrev(BodySim* body)				{ mWaterVolumePrev = body;	}
 	private:
 		// Base body
 						PxsRigidBody			mLLBody;
@@ -206,6 +216,13 @@ namespace Sc
 
 		// Articulation
 						ArticulationSim*		mArticulation;				// NULL if not in an articulation
+
+		// Buoyancy / water volumes
+						PxsShapeCore**			mBuoyancyShapeMem;
+						PxU32					mBuoyancyShapeCapacity;
+						PxU16					mWaterVolumeAuto;
+						BodySim*				mWaterVolumeNext;
+						BodySim*				mWaterVolumePrev;
 
 		// Joints & joint groups
 

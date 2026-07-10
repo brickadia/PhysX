@@ -30,6 +30,8 @@
 #include "ScShapeSim.h"
 #include "ScArticulationSim.h"
 #include "ScArticulationCore.h"
+#include "ScTriggerInteraction.h"
+#include "PxsWaterVolume.h"
 
 using namespace physx;
 using namespace Dy;
@@ -59,9 +61,15 @@ BodySim::BodySim(Scene& scene, BodyCore& core, bool compound) :
 	mLLBody			(&core.getCore(), PX_FREEZE_INTERVAL),
 	mSimStateData	(NULL),
 	mDeferredPoseListIndex(PX_INVALID_U32),
-	mArticulation	(NULL)
+	mArticulation	(NULL),
+	mBuoyancyShapeMem(NULL),
+	mBuoyancyShapeCapacity(0),
+	mWaterVolumeAuto(PXS_INVALID_WATER_VOLUME),
+	mWaterVolumeNext(NULL),
+	mWaterVolumePrev(NULL)
 {
 	PxU16 internalFlags = mLLBody.mInternalFlags | VMF_GRAVITY_DIRTY;
+	mLLBody.mBuoyancyScale = core.getBuoyancyScale();
 
 	core.getCore().numCountedInteractions = 0;
 	core.getCore().disableGravity = core.getActorFlags() & PxActorFlag::eDISABLE_GRAVITY;
@@ -132,12 +140,19 @@ BodySim::BodySim(Scene& scene, BodyCore& core, bool compound) :
 
 		mFilterFlags |= PxFilterObjectFlag::eKINEMATIC;
 	}
+
+	refreshWaterVolumeIndex();
 }
 
 BodySim::~BodySim()
 {
 	Scene& scene = mScene;
 	const bool active = isActive();
+
+	if(mLLBody.mWaterVolumeIndex != PXS_INVALID_WATER_VOLUME)
+		scene.unlinkWaterVolumeBody(*this, mLLBody.mWaterVolumeIndex);
+
+	PX_FREE(mBuoyancyShapeMem);
 
 	tearDownSimStateData(isKinematic());
 	PX_ASSERT(!mSimStateData);
@@ -166,6 +181,112 @@ BodySim::~BodySim()
 	mCore.setSim(NULL);
 }
 
+void BodySim::rebuildBuoyancyShapes()
+{
+	const PxU32 nbElements = getNbElements();
+	ElementSim* const* elements = getElements();
+
+	PxU32 count = 0;
+	for(PxU32 i=0; i<nbElements; i++)
+	{
+		const ShapeSimBase* shape = static_cast<const ShapeSimBase*>(elements[i]);
+		if(shape->getFlags() & PxShapeFlag::eSIMULATION_SHAPE)
+			count++;
+	}
+
+	if(count > 1 && count > mBuoyancyShapeCapacity)
+	{
+		PX_FREE(mBuoyancyShapeMem);
+		mBuoyancyShapeMem = PX_ALLOCATE(PxsShapeCore*, count, "BodySim::mBuoyancyShapeMem");
+		mBuoyancyShapeCapacity = count;
+	}
+
+	const PxsShapeCore* single = NULL;
+	PxU32 index = 0;
+
+	for(PxU32 i=0; i<nbElements; i++)
+	{
+		const ShapeSimBase* shape = static_cast<const ShapeSimBase*>(elements[i]);
+
+		if(!(shape->getFlags() & PxShapeFlag::eSIMULATION_SHAPE))
+			continue;
+
+		const PxsShapeCore* shapeCore = &shape->getCore();
+
+		if(count == 1)
+			single = shapeCore;
+		else
+			mBuoyancyShapeMem[index++] = const_cast<PxsShapeCore*>(shapeCore);
+	}
+
+	mLLBody.mNbBuoyancyShapes = PxU16(PxMin<PxU32>(count, 0xffffu));
+	mLLBody.mBuoyancyShapes = count == 0 ? uintptr_t(0) : (count == 1 ? uintptr_t(single) : uintptr_t(mBuoyancyShapeMem));
+}
+
+void BodySim::resolveWaterVolumeFromInteractions()
+{
+	PxU16 best = PXS_INVALID_WATER_VOLUME;
+
+	if(!isKinematic() && !isArticulationLink())
+	{
+		Interaction** interactions = getActorInteractions();
+		PxU32 count = getActorInteractionCount();
+
+		while(count--)
+		{
+			Interaction* interaction = *interactions++;
+
+			if(interaction->getType() != InteractionType::eTRIGGER)
+				continue;
+
+			TriggerInteraction* tri = static_cast<TriggerInteraction*>(interaction);
+
+			if(!tri->readFlag(TriggerInteraction::WATER_VOLUME) || !tri->lastFrameHadContacts())
+				continue;
+
+			if(&tri->getOtherShape().getActor() != static_cast<ActorSim*>(this))
+				continue;
+
+			const PxU16 slot = getScene().getWaterVolumeSlot(&tri->getTriggerShape().getCore());
+
+			if(slot < best)
+				best = slot;
+		}
+	}
+
+	mWaterVolumeAuto = best;
+	refreshWaterVolumeIndex();
+}
+
+void BodySim::refreshWaterVolumeIndex()
+{
+	const PxU32 overrideHandle = getBodyCore().getWaterVolumeOverride();
+	PxU16 resolved = overrideHandle < PXS_INVALID_WATER_VOLUME ? PxU16(overrideHandle) : mWaterVolumeAuto;
+
+	if(resolved == PXS_INVALID_WATER_VOLUME)
+		resolved = getScene().getDefaultWaterVolume();
+
+	if(isKinematic() || isArticulationLink())
+		resolved = PXS_INVALID_WATER_VOLUME;
+
+	if(resolved != PXS_INVALID_WATER_VOLUME && !getScene().isValidWaterVolume(resolved))
+		resolved = PXS_INVALID_WATER_VOLUME;
+
+	const PxU16 old = mLLBody.mWaterVolumeIndex;
+
+	if(old == resolved)
+		return;
+
+	Scene& scene = getScene();
+
+	if(old != PXS_INVALID_WATER_VOLUME)
+		scene.unlinkWaterVolumeBody(*this, old);
+
+	mLLBody.mWaterVolumeIndex = resolved;
+
+	if(resolved != PXS_INVALID_WATER_VOLUME)
+		scene.linkWaterVolumeBody(*this, resolved);
+}
 bool BodySim::setupSimStateData(bool isKinematic)
 {
 	SimStateData* data = mSimStateData;
@@ -232,6 +353,8 @@ void BodySim::switchToKinematic()
 	mScene.setDynamicsDirty();
 
 	mFilterFlags |= PxFilterObjectFlag::eKINEMATIC;
+
+	refreshWaterVolumeIndex();
 }
 
 void BodySim::switchToDynamic()
@@ -262,6 +385,8 @@ void BodySim::switchToDynamic()
 	mScene.setDynamicsDirty();
 
 	mFilterFlags &= ~PxFilterObjectFlag::eKINEMATIC;
+
+	resolveWaterVolumeFromInteractions();
 }
 
 void BodySim::setKinematicTarget(const PxTransform& p)

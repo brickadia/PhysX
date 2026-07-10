@@ -29,6 +29,9 @@
 #include "NpScene.h"
 #include "NpRigidStatic.h"
 #include "NpRigidDynamic.h"
+#include "NpShape.h"
+#include "geometry/PxGeometryQuery.h"
+#include "ScBodySim.h"
 #include "NpArticulationReducedCoordinate.h"
 #include "NpArticulationTendon.h"
 #include "NpAggregate.h"
@@ -367,6 +370,160 @@ PxVec3 NpScene::getGravity() const
 {
 	NP_READ_CHECK(this);
 	return mScene.getGravity();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+static PX_FORCE_INLINE void convertWaterVolumeDesc(const PxWaterVolumeDesc& desc, PxsWaterVolume& params)
+{
+	params.surfaceHeight = desc.surfaceHeight;
+	params.forceScale = desc.forceScale;
+	params.linearDrag = desc.linearDrag;
+	params.angularDrag = desc.angularDrag;
+}
+
+static PX_FORCE_INLINE bool isValidWaterVolumeDesc(const PxWaterVolumeDesc& desc)
+{
+	return PxIsFinite(desc.surfaceHeight) && PxIsFinite(desc.forceScale) && PxIsFinite(desc.linearDrag) && PxIsFinite(desc.angularDrag)
+		&& desc.forceScale >= 0.0f && desc.linearDrag >= 0.0f && desc.angularDrag >= 0.0f;
+}
+
+static PX_FORCE_INLINE bool sceneSupportsWaterVolumes(const NpScene& scene)
+{
+	return scene.getSolverType() == PxSolverType::eTGS
+		&& !(scene.getFlags() & PxSceneFlag::eENABLE_GPU_DYNAMICS)
+		&& !(scene.getFlags() & PxSceneFlag::eENABLE_EXTERNAL_FORCES_EVERY_ITERATION_TGS);
+}
+
+PxU32 NpScene::addWaterVolume(PxShape& triggerShape, const PxWaterVolumeDesc& desc)
+{
+	NP_WRITE_CHECK(this);
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN_AND_RETURN_VAL(this, "PxScene::addWaterVolume() not allowed while simulation is running. Call will be ignored.", PX_WATER_VOLUME_INVALID);
+
+	PX_CHECK_AND_RETURN_VAL(sceneSupportsWaterVolumes(*this), "PxScene::addWaterVolume(): water volumes require the CPU TGS solver without per-iteration external forces.", PX_WATER_VOLUME_INVALID);
+	PX_CHECK_AND_RETURN_VAL(isValidWaterVolumeDesc(desc), "PxScene::addWaterVolume(): invalid water volume desc.", PX_WATER_VOLUME_INVALID);
+
+	NpShape& npShape = static_cast<NpShape&>(triggerShape);
+
+	PX_CHECK_AND_RETURN_VAL(npShape.isExclusiveFast(), "PxScene::addWaterVolume(): the trigger shape must be exclusive.", PX_WATER_VOLUME_INVALID);
+	PX_CHECK_AND_RETURN_VAL(npShape.getFlags() & PxShapeFlag::eTRIGGER_SHAPE, "PxScene::addWaterVolume(): the shape must have PxShapeFlag::eTRIGGER_SHAPE.", PX_WATER_VOLUME_INVALID);
+
+	PxRigidActor* actor = npShape.getActor();
+	PX_CHECK_AND_RETURN_VAL(actor && actor->getScene() == this, "PxScene::addWaterVolume(): the trigger shape's actor must be in this scene.", PX_WATER_VOLUME_INVALID);
+
+	PxsWaterVolume params;
+	convertWaterVolumeDesc(desc, params);
+
+	const PxU32 handle = mScene.addWaterVolume(&npShape.getCore(), params);
+
+	if(handle == PX_WATER_VOLUME_INVALID)
+		return handle;
+
+	// Wake overlapping dynamics so initial trigger events are generated for sleeping bodies.
+	PxBounds3 triggerBounds;
+	PxGeometryQuery::computeGeomBounds(triggerBounds, npShape.getGeometry(), actor->getGlobalPose() * npShape.getLocalPose());
+
+	const PxReal wakeCounterResetValue = getWakeCounterResetValueInternal();
+
+	for(PxU32 i=0; i<mRigidDynamics.size(); i++)
+	{
+		NpRigidDynamic* body = mRigidDynamics[i];
+
+		if(body->getCore().getFlags() & PxRigidBodyFlag::eKINEMATIC)
+			continue;
+
+		if(triggerBounds.intersects(body->getWorldBounds()))
+			body->getCore().wakeUp(wakeCounterResetValue);
+	}
+
+	return handle;
+}
+
+PxU32 NpScene::addWaterVolume(const PxWaterVolumeDesc& desc)
+{
+	NP_WRITE_CHECK(this);
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN_AND_RETURN_VAL(this, "PxScene::addWaterVolume() not allowed while simulation is running. Call will be ignored.", PX_WATER_VOLUME_INVALID);
+
+	PX_CHECK_AND_RETURN_VAL(sceneSupportsWaterVolumes(*this), "PxScene::addWaterVolume(): water volumes require the CPU TGS solver without per-iteration external forces.", PX_WATER_VOLUME_INVALID);
+	PX_CHECK_AND_RETURN_VAL(isValidWaterVolumeDesc(desc), "PxScene::addWaterVolume(): invalid water volume desc.", PX_WATER_VOLUME_INVALID);
+
+	PxsWaterVolume params;
+	convertWaterVolumeDesc(desc, params);
+	return mScene.addWaterVolume(NULL, params);
+}
+
+bool NpScene::addWaterVolumeShape(PxU32 handle, PxShape& triggerShape)
+{
+	NP_WRITE_CHECK(this);
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN_AND_RETURN_VAL(this, "PxScene::addWaterVolumeShape() not allowed while simulation is running. Call will be ignored.", false);
+
+	NpShape& npShape = static_cast<NpShape&>(triggerShape);
+
+	PX_CHECK_AND_RETURN_VAL(npShape.isExclusiveFast(), "PxScene::addWaterVolumeShape(): the trigger shape must be exclusive.", false);
+	PX_CHECK_AND_RETURN_VAL(npShape.getFlags() & PxShapeFlag::eTRIGGER_SHAPE, "PxScene::addWaterVolumeShape(): the shape must have PxShapeFlag::eTRIGGER_SHAPE.", false);
+
+	PxRigidActor* actor = npShape.getActor();
+	PX_UNUSED(actor);
+	PX_CHECK_AND_RETURN_VAL(actor && actor->getScene() == this, "PxScene::addWaterVolumeShape(): the trigger shape's actor must be in this scene.", false);
+	PX_CHECK_AND_RETURN_VAL(mScene.isValidWaterVolume(handle), "PxScene::addWaterVolumeShape(): invalid water volume handle.", false);
+
+	return mScene.addWaterVolumeShape(handle, npShape.getCore());
+}
+
+void NpScene::removeWaterVolumeShape(PxShape& triggerShape)
+{
+	NP_WRITE_CHECK(this);
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN(this, "PxScene::removeWaterVolumeShape() not allowed while simulation is running. Call will be ignored.")
+
+	mScene.removeWaterVolumeShape(static_cast<NpShape&>(triggerShape).getCore());
+}
+
+void NpScene::setDefaultWaterVolume(PxU32 handle)
+{
+	NP_WRITE_CHECK(this);
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN(this, "PxScene::setDefaultWaterVolume() not allowed while simulation is running. Call will be ignored.")
+
+	PX_CHECK_AND_RETURN(handle == PX_WATER_VOLUME_INVALID || mScene.isValidWaterVolume(handle), "PxScene::setDefaultWaterVolume(): invalid water volume handle.");
+
+	mScene.setDefaultWaterVolumeInternal(handle == PX_WATER_VOLUME_INVALID ? PxU16(0xffffu) : PxU16(handle));
+
+	const PxReal wakeCounterResetValue = getWakeCounterResetValueInternal();
+
+	for(PxU32 i=0; i<mRigidDynamics.size(); i++)
+	{
+		NpRigidDynamic* body = mRigidDynamics[i];
+		Sc::BodyCore& core = body->getCore();
+		Sc::BodySim* sim = core.getSim();
+
+		if(!sim)
+			continue;
+
+		const PxU16 before = sim->getLowLevelBody().mWaterVolumeIndex;
+		sim->refreshWaterVolumeIndex();
+
+		if(sim->getLowLevelBody().mWaterVolumeIndex != before)
+			core.wakeUp(wakeCounterResetValue);
+	}
+}
+
+void NpScene::updateWaterVolume(PxU32 handle, const PxWaterVolumeDesc& desc)
+{
+	NP_WRITE_CHECK(this);
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN(this, "PxScene::updateWaterVolume() not allowed while simulation is running. Call will be ignored.")
+
+	PX_CHECK_AND_RETURN(isValidWaterVolumeDesc(desc), "PxScene::updateWaterVolume(): invalid water volume desc.");
+
+	PxsWaterVolume params;
+	convertWaterVolumeDesc(desc, params);
+	mScene.updateWaterVolume(handle, params);
+}
+
+void NpScene::removeWaterVolume(PxU32 handle)
+{
+	NP_WRITE_CHECK(this);
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN(this, "PxScene::removeWaterVolume() not allowed while simulation is running. Call will be ignored.")
+
+	mScene.removeWaterVolume(handle);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -114,6 +114,11 @@ public:
 	virtual			PxReal				getMaxLinearVelocity()	const	PX_OVERRIDE PX_FINAL;
 	virtual			void				setMaxAngularVelocity(PxReal maxAngVel)	PX_OVERRIDE PX_FINAL;
 	virtual			PxReal				getMaxAngularVelocity()	const	PX_OVERRIDE PX_FINAL;
+	virtual			void				setBuoyancyScale(PxReal scale)	PX_OVERRIDE PX_FINAL;
+	virtual			PxReal				getBuoyancyScale()	const	PX_OVERRIDE PX_FINAL;
+	virtual			void				setWaterVolumeOverride(PxU32 handle)	PX_OVERRIDE PX_FINAL;
+	virtual			PxU32				getWaterVolumeOverride()	const	PX_OVERRIDE PX_FINAL;
+	virtual			bool				isTouchingWater()	const	PX_OVERRIDE PX_FINAL;
 	//~PxRigidBody
 
 	//---------------------------------------------------------------------------------
@@ -941,6 +946,54 @@ PxReal NpRigidBodyTemplate<APIClass>::getMaxAngularVelocity() const
 	NP_READ_CHECK(RigidActorTemplateClass::getNpScene());
 
 	return PxSqrt(mCore.getMaxAngVelSq());
+}
+
+template<class APIClass>
+void NpRigidBodyTemplate<APIClass>::setBuoyancyScale(PxReal scale)
+{
+	NpScene* npScene = RigidActorTemplateClass::getNpScene();
+	NP_WRITE_CHECK(npScene);
+	PX_CHECK_AND_RETURN(PxIsFinite(scale), "PxRigidBody::setBuoyancyScale(): invalid float");
+	PX_CHECK_AND_RETURN(scale >= 0.0f, "PxRigidBody::setBuoyancyScale(): the scale must be nonnegative!");
+
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN(npScene, "PxRigidBody::setBuoyancyScale() not allowed while simulation is running. Call will be ignored.")
+
+	mCore.setBuoyancyScale(scale);
+}
+
+template<class APIClass>
+PxReal NpRigidBodyTemplate<APIClass>::getBuoyancyScale() const
+{
+	NP_READ_CHECK(RigidActorTemplateClass::getNpScene());
+
+	return mCore.getBuoyancyScale();
+}
+
+template<class APIClass>
+void NpRigidBodyTemplate<APIClass>::setWaterVolumeOverride(PxU32 handle)
+{
+	NpScene* npScene = RigidActorTemplateClass::getNpScene();
+	NP_WRITE_CHECK(npScene);
+
+	PX_CHECK_SCENE_API_WRITE_FORBIDDEN(npScene, "PxRigidBody::setWaterVolumeOverride() not allowed while simulation is running. Call will be ignored.")
+
+	mCore.setWaterVolumeOverride(handle);
+}
+
+template<class APIClass>
+PxU32 NpRigidBodyTemplate<APIClass>::getWaterVolumeOverride() const
+{
+	NP_READ_CHECK(RigidActorTemplateClass::getNpScene());
+
+	return mCore.getWaterVolumeOverride();
+}
+
+template<class APIClass>
+bool NpRigidBodyTemplate<APIClass>::isTouchingWater() const
+{
+	NP_READ_CHECK(RigidActorTemplateClass::getNpScene());
+
+	return mCore.isTouchingWater();
 }
 
 template<class APIClass>

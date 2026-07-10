@@ -3907,3 +3907,246 @@ void Sc::Scene::setActiveDeformableVolumeActors(PxActor** actors, PxU32 nbActors
 
 #endif //PX_SUPPORT_GPU_PHYSX
 
+PxU16 Sc::Scene::getWaterVolumeSlot(const ShapeCore* shapeCore) const
+{
+	const PxHashMap<const ShapeCore*, PxU16>::Entry* entry = mWaterVolumeShapeMap.find(shapeCore);
+	return entry ? entry->second : PxU16(PXS_INVALID_WATER_VOLUME);
+}
+
+bool Sc::Scene::isValidWaterVolume(PxU32 handle) const
+{
+	return handle < mWaterVolumeSlots.size() && mWaterVolumeSlots[handle].used;
+}
+
+void Sc::Scene::flagWaterVolumeInteractions(ShapeSimBase& shapeSim, bool isWater)
+{
+	ActorSim& actor = shapeSim.getActor();
+	Interaction** interactions = actor.getActorInteractions();
+	PxU32 count = actor.getActorInteractionCount();
+
+	while(count--)
+	{
+		Interaction* interaction = *interactions++;
+
+		if(interaction->getType() != InteractionType::eTRIGGER)
+			continue;
+
+		TriggerInteraction* tri = static_cast<TriggerInteraction*>(interaction);
+
+		if(&tri->getTriggerShape() != &shapeSim)
+			continue;
+
+		if(isWater)
+		{
+			tri->raiseFlag(TriggerInteraction::WATER_VOLUME);
+			tri->forceProcessingThisFrame(*this);
+
+			// An already-overlapping pair never raises a found transition; resolve it now.
+			if(tri->lastFrameHadContacts())
+				onWaterTriggerTransition(tri);
+		}
+		else
+		{
+			tri->clearFlag(TriggerInteraction::WATER_VOLUME);
+		}
+	}
+}
+
+PxU32 Sc::Scene::addWaterVolume(const ShapeCore* shapeCore, const PxsWaterVolume& params)
+{
+	if(shapeCore && mWaterVolumeShapeMap.find(shapeCore))
+		return 0xffffffffu;
+
+	PxU16 slot;
+
+	if(mWaterVolumeFreeSlots.size())
+	{
+		slot = mWaterVolumeFreeSlots.popBack();
+	}
+	else
+	{
+		if(mWaterVolumeParams.size() >= PXS_INVALID_WATER_VOLUME)
+			return 0xffffffffu;
+
+		slot = PxU16(mWaterVolumeParams.size());
+		mWaterVolumeParams.pushBack(PxsWaterVolume());
+		mWaterVolumeSlots.pushBack(WaterVolumeSlot());
+	}
+
+	mWaterVolumeParams[slot] = params;
+
+	WaterVolumeSlot& s = mWaterVolumeSlots[slot];
+	s.shapes.clear();
+	s.bodyListHead = NULL;
+	s.used = true;
+
+	mDynamicsContext->setWaterVolumes(mWaterVolumeParams.begin(), mWaterVolumeParams.size());
+
+	if(shapeCore)
+		addWaterVolumeShape(slot, *shapeCore);
+
+	return slot;
+}
+
+bool Sc::Scene::addWaterVolumeShape(PxU32 handle, const ShapeCore& shapeCore)
+{
+	if(!isValidWaterVolume(handle) || mWaterVolumeShapeMap.find(&shapeCore))
+		return false;
+
+	mWaterVolumeSlots[handle].shapes.pushBack(&shapeCore);
+	mWaterVolumeShapeMap.insert(&shapeCore, PxU16(handle));
+
+	ShapeSim* sim = shapeCore.getExclusiveSim();
+	if(sim)
+		flagWaterVolumeInteractions(*sim, true);
+
+	return true;
+}
+
+void Sc::Scene::removeWaterVolumeShape(const ShapeCore& shapeCore)
+{
+	const PxHashMap<const ShapeCore*, PxU16>::Entry* entry = mWaterVolumeShapeMap.find(&shapeCore);
+	if(!entry)
+		return;
+
+	const PxU16 slot = entry->second;
+	mWaterVolumeShapeMap.erase(&shapeCore);
+
+	ShapeSim* sim = shapeCore.getExclusiveSim();
+	if(sim)
+		flagWaterVolumeInteractions(*sim, false);
+
+	WaterVolumeSlot& s = mWaterVolumeSlots[slot];
+	s.shapes.findAndReplaceWithLast(&shapeCore);
+
+	// Bodies overlapping another shape of the slot keep their assignment through the walk.
+	BodySim* body = s.bodyListHead;
+	while(body)
+	{
+		BodySim* next = body->getWaterVolumeNext();
+
+		const PxU16 before = body->getLowLevelBody().mWaterVolumeIndex;
+		body->resolveWaterVolumeFromInteractions();
+
+		if(body->getLowLevelBody().mWaterVolumeIndex != before)
+			body->getBodyCore().wakeUp(ScInternalWakeCounterResetValue);
+
+		body = next;
+	}
+}
+
+void Sc::Scene::updateWaterVolume(PxU32 handle, const PxsWaterVolume& params)
+{
+	if(!isValidWaterVolume(handle))
+		return;
+
+	mWaterVolumeParams[handle] = params;
+	mDynamicsContext->setWaterVolumes(mWaterVolumeParams.begin(), mWaterVolumeParams.size());
+	wakeWaterVolumeBodies(handle);
+}
+
+void Sc::Scene::removeWaterVolume(PxU32 handle)
+{
+	if(!isValidWaterVolume(handle))
+		return;
+
+	// Must clear before bodies re-resolve, and before the slot can be reused as a different volume.
+	if(mDefaultWaterVolume == handle)
+		mDefaultWaterVolume = 0xffffu;
+
+	WaterVolumeSlot& s = mWaterVolumeSlots[handle];
+
+	for(PxU32 i=0; i<s.shapes.size(); i++)
+	{
+		const ShapeCore* shapeCore = s.shapes[i];
+
+		ShapeSim* sim = shapeCore->getExclusiveSim();
+		if(sim)
+			flagWaterVolumeInteractions(*sim, false);
+
+		mWaterVolumeShapeMap.erase(shapeCore);
+	}
+
+	s.shapes.clear();
+
+	BodySim* body = s.bodyListHead;
+	while(body)
+	{
+		BodySim* next = body->getWaterVolumeNext();
+
+		BodyCore& bodyCore = body->getBodyCore();
+		bodyCore.wakeUp(ScInternalWakeCounterResetValue);
+
+		if(bodyCore.getWaterVolumeOverride() == handle)
+			bodyCore.setWaterVolumeOverrideInternal(0xffffffffu);
+
+		body->resolveWaterVolumeFromInteractions();
+		body = next;
+	}
+
+	s.bodyListHead = NULL;
+	s.used = false;
+	mWaterVolumeFreeSlots.pushBack(PxU16(handle));
+
+	mDynamicsContext->setWaterVolumes(mWaterVolumeParams.begin(), mWaterVolumeParams.size());
+}
+
+void Sc::Scene::wakeWaterVolumeBodies(PxU32 handle)
+{
+	if(!isValidWaterVolume(handle))
+		return;
+
+	BodySim* body = mWaterVolumeSlots[handle].bodyListHead;
+	while(body)
+	{
+		body->getBodyCore().wakeUp(ScInternalWakeCounterResetValue);
+		body = body->getWaterVolumeNext();
+	}
+}
+
+void Sc::Scene::linkWaterVolumeBody(BodySim& body, PxU16 slot)
+{
+	if(!isValidWaterVolume(slot))
+		return;
+
+	WaterVolumeSlot& s = mWaterVolumeSlots[slot];
+	body.setWaterVolumePrev(NULL);
+	body.setWaterVolumeNext(s.bodyListHead);
+
+	if(s.bodyListHead)
+		s.bodyListHead->setWaterVolumePrev(&body);
+
+	s.bodyListHead = &body;
+}
+
+void Sc::Scene::unlinkWaterVolumeBody(BodySim& body, PxU16 slot)
+{
+	BodySim* prev = body.getWaterVolumePrev();
+	BodySim* next = body.getWaterVolumeNext();
+
+	if(prev)
+		prev->setWaterVolumeNext(next);
+	else if(slot < mWaterVolumeSlots.size() && mWaterVolumeSlots[slot].bodyListHead == &body)
+		mWaterVolumeSlots[slot].bodyListHead = next;
+
+	if(next)
+		next->setWaterVolumePrev(prev);
+
+	body.setWaterVolumeNext(NULL);
+	body.setWaterVolumePrev(NULL);
+}
+
+void Sc::Scene::onWaterTriggerTransition(TriggerInteraction* tri)
+{
+	BodySim* body = tri->getOtherShape().getBodySim();
+
+	if(!body || body->isKinematic() || body->isArticulationLink())
+		return;
+
+	const PxU16 before = body->getLowLevelBody().mWaterVolumeIndex;
+	body->resolveWaterVolumeFromInteractions();
+
+	if(body->getLowLevelBody().mWaterVolumeIndex != before && !body->isActive())
+		body->internalWakeUp(ScInternalWakeCounterResetValue);
+}
+

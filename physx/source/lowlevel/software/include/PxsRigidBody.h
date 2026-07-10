@@ -67,6 +67,7 @@ class PxsRigidBody
 		eFREE_FLAG_3			= 1 << 13,
 		eFREE_FLAG_4			= 1 << 14,
 		eFREE_FLAG_5			= 1 << 15,
+		eTOUCHING_WATER			= eFREE_FLAG_4,
 		eFREE_FLAGS				= eFREE_FLAG_1 | eFREE_FLAG_2 | eFREE_FLAG_3 | eFREE_FLAG_4 | eFREE_FLAG_5
 	};
 
@@ -78,8 +79,12 @@ class PxsRigidBody
 											mSleepLinVelAcc	(PxVec3(0.0f)),
 											mFreezeCount	(freeze_count),
 											mSleepAngVelAcc	(PxVec3(0.0f)),
-											mAccelScale		(1.0f)
-															{}
+											mAccelScale		(1.0f),
+											mBuoyancyShapes			(0),
+											mBuoyancyScale			(1.0f),
+											mNbBuoyancyShapes		(0),
+											mWaterVolumeIndex		(0xffff)
+																	{}
 
 	PX_FORCE_INLINE						~PxsRigidBody()		{}
 
@@ -146,6 +151,12 @@ class PxsRigidBody
 	   
 					PxVec3				mSleepAngVelAcc;
 					PxReal				mAccelScale;
+
+					// 0 shapes = null; 1 = PxsShapeCore*; more = PxsShapeCore** owned by BodySim.
+					uintptr_t			mBuoyancyShapes;
+					PxReal				mBuoyancyScale;
+					PxU16				mNbBuoyancyShapes;
+					PxU16				mWaterVolumeIndex;
 }
 PX_ALIGN_SUFFIX(16);
 PX_COMPILE_TIME_ASSERT(0 == (sizeof(PxsRigidBody) & 0x0f));

@@ -332,6 +332,13 @@ void ShapeSimBase::onFlagChange(PxShapeFlags oldFlags)
 	if((oldFlags ^ newFlags) & PxShapeFlag::eVISUALIZATION)
 		setElementInteractionsDirty(*this, InteractionDirtyFlag::eVISUALIZATION, InteractionFlag::eFILTERABLE);
 
+	if ((oldFlags & PxShapeFlag::eSIMULATION_SHAPE) != (newFlags & PxShapeFlag::eSIMULATION_SHAPE))
+	{
+		BodySim* body = getBodySim();
+		if (body)
+			body->rebuildBuoyancyShapes();
+	}
+
 	getScene().getSimulationController()->addPxgShape(this, getPxsShapeCore(), getActorNodeIndex(), getElementID());
 }
 

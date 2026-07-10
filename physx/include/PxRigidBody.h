@@ -194,6 +194,9 @@ struct PxRigidBodyFlag
 		*/
 		eENABLE_GYROSCOPIC_FORCES = (1<<10),
 
+		/** \brief Buoyancy displaces the body's merged shape AABB instead of exact shape volumes; custom geometry stays exact. */
+		eBUOYANCY_FROM_BOUNDS = (1<<11),
+
 		/**
 		\brief Reserved for internal usage
 		*/
@@ -208,6 +211,12 @@ struct PxRigidBodyFlag
 */
 typedef PxFlags<PxRigidBodyFlag::Enum,PxU16> PxRigidBodyFlags;
 PX_FLAGS_OPERATORS(PxRigidBodyFlag::Enum,PxU16)
+
+/** Restores automatic trigger-driven water volume assignment when passed to PxRigidBody::setWaterVolumeOverride(). */
+#define PX_WATER_VOLUME_AUTO 0xffffffffu
+
+/** Returned by PxScene::addWaterVolume() on failure. */
+#define PX_WATER_VOLUME_INVALID 0xffffffffu
 
 /**
 \brief PxRigidBody is a base class shared between dynamic rigid body objects.
@@ -486,6 +495,23 @@ public:
 	\see setMaxAngularVelocity
 	*/
 	virtual		PxReal	getMaxAngularVelocity()	const = 0;
+
+/************************************************************************************************/
+/** \name Buoyancy
+*/
+
+	/** Scales the buoyancy force from scene water volumes. 0 disables buoyancy for this body. Wakes the body. */
+	virtual		void	setBuoyancyScale(PxReal scale) = 0;
+
+	virtual		PxReal	getBuoyancyScale() const = 0;
+
+	/** Pins the water volume assignment, suspending trigger-driven updates. PX_WATER_VOLUME_AUTO restores them. Wakes the body. */
+	virtual		void	setWaterVolumeOverride(PxU32 handle) = 0;
+
+	virtual		PxU32	getWaterVolumeOverride() const = 0;
+
+	/** True if buoyancy applied a force to this body in the last simulated step; persists while the body sleeps afloat. */
+	virtual		bool	isTouchingWater() const = 0;
 
 /************************************************************************************************/
 /** \name Acceleration

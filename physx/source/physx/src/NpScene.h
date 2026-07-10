@@ -190,6 +190,14 @@ class NpScene : public NpSceneAccessor, public PxUserAllocated
 	virtual			void							setGravity(const PxVec3&)	PX_OVERRIDE PX_FINAL;
 	virtual			PxVec3							getGravity() const			PX_OVERRIDE PX_FINAL;
 
+	virtual			PxU32							addWaterVolume(PxShape& triggerShape, const PxWaterVolumeDesc& desc)	PX_OVERRIDE PX_FINAL;
+	virtual			PxU32							addWaterVolume(const PxWaterVolumeDesc& desc)							PX_OVERRIDE PX_FINAL;
+	virtual			bool							addWaterVolumeShape(PxU32 handle, PxShape& triggerShape)				PX_OVERRIDE PX_FINAL;
+	virtual			void							removeWaterVolumeShape(PxShape& triggerShape)							PX_OVERRIDE PX_FINAL;
+	virtual			void							setDefaultWaterVolume(PxU32 handle)										PX_OVERRIDE PX_FINAL;
+	virtual			void							updateWaterVolume(PxU32 handle, const PxWaterVolumeDesc& desc)			PX_OVERRIDE PX_FINAL;
+	virtual			void							removeWaterVolume(PxU32 handle)											PX_OVERRIDE PX_FINAL;
+
 	virtual			void							setBounceThresholdVelocity(const PxReal t)		PX_OVERRIDE PX_FINAL;
 	virtual			PxReal							getBounceThresholdVelocity() const				PX_OVERRIDE PX_FINAL;
 	virtual			void							setMaxBiasCoefficient(const PxReal t)			PX_OVERRIDE PX_FINAL;

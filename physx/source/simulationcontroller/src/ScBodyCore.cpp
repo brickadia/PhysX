@@ -57,6 +57,43 @@ Sc::BodyCore::BodyCore(PxActorType::Enum type, const PxTransform& bodyPose) : Ri
 
 	mCore.init(bodyPose, PxVec3(1.0f), 1.0f, Sc::Physics::sWakeCounterOnCreation, scale.speed, linearDamping, 0.05f, maxLinearVelocitySq, maxAngularVelocitySq,
 		type);
+
+	mBuoyancyScale = 1.0f;
+	mWaterVolumeOverride = 0xffffffffu;
+}
+
+void Sc::BodyCore::setBuoyancyScale(PxReal scale)
+{
+	mBuoyancyScale = scale;
+
+	BodySim* sim = getSim();
+	if(sim)
+	{
+		sim->getLowLevelBody().mBuoyancyScale = scale;
+		sim->wakeUp();
+	}
+}
+
+void Sc::BodyCore::setWaterVolumeOverride(PxU32 handle)
+{
+	mWaterVolumeOverride = handle;
+
+	BodySim* sim = getSim();
+	if(sim)
+	{
+		if(handle == 0xffffffffu)
+			sim->resolveWaterVolumeFromInteractions();
+		else
+			sim->refreshWaterVolumeIndex();
+
+		sim->wakeUp();
+	}
+}
+
+bool Sc::BodyCore::isTouchingWater() const
+{
+	const BodySim* sim = getSim();
+	return sim && (sim->getLowLevelBody().mInternalFlags & PxsRigidBody::eTOUCHING_WATER);
 }
 
 Sc::BodyCore::~BodyCore()
@@ -221,6 +258,10 @@ void Sc::BodyCore::setInverseMass(PxReal m)
 	{
 		mCore.inverseMass = m;
 		gpu_updateBodySim(*this);
+
+		// Flotation equilibrium depends on mass; a body sleeping afloat must re-evaluate.
+		if(sim && sim->getLowLevelBody().mWaterVolumeIndex != 0xffff)
+			sim->wakeUp();
 	}
 	else
 	{
@@ -254,6 +295,9 @@ void Sc::BodyCore::setInverseInertia(const PxVec3& i)
 	{
 		mCore.inverseInertia = i;
 		gpu_updateBodySim(*this);
+
+		if(sim && sim->getLowLevelBody().mWaterVolumeIndex != 0xffff)
+			sim->wakeUp();
 	}
 	else
 	{

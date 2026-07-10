@@ -37,15 +37,15 @@ namespace physx
 namespace Dy
 {
 PX_FORCE_INLINE void bodyCoreComputeUnconstrainedVelocity
-	(const PxVec3& gravity, PxReal dt, PxReal linearDamping, PxReal angularDamping, PxReal accelScale, 
+	(const PxVec3& gravity, PxReal dt, PxReal linearDamping, PxReal angularDamping, PxReal accelScale,
 	PxReal maxLinearVelocitySq, PxReal maxAngularVelocitySq, PxVec3& inOutLinearVelocity, PxVec3& inOutAngularVelocity,
-	bool disableGravity)
+	bool disableGravity, const PxVec3& extraLinearAcceleration = PxVec3(0.0f), const PxVec3& extraAngularAcceleration = PxVec3(0.0f))
 {
 	//Multiply everything that needs multiplied by dt to improve code generation.
 
 	PxVec3 linearVelocity = inOutLinearVelocity;
 	PxVec3 angularVelocity = inOutAngularVelocity;
-	
+
 	const PxReal linearDampingTimesDT=linearDamping*dt;
 	const PxReal angularDampingTimesDT=angularDamping*dt;
 	const PxReal oneMinusLinearDampingTimesDT=1.0f-linearDampingTimesDT;
@@ -57,6 +57,10 @@ PX_FORCE_INLINE void bodyCoreComputeUnconstrainedVelocity
 		const PxVec3 linearAccelTimesDT = gravity*dt *accelScale;
 		linearVelocity += linearAccelTimesDT;
 	}
+
+	// Buoyancy - scaled by accelScale like gravity, unaffected by disableGravity.
+	linearVelocity += extraLinearAcceleration*(dt*accelScale);
+	angularVelocity += extraAngularAcceleration*(dt*accelScale);
 
 	//Apply damping.
 	const PxReal linVelMultiplier = physx::intrinsics::fsel(oneMinusLinearDampingTimesDT, oneMinusLinearDampingTimesDT, 0.0f);

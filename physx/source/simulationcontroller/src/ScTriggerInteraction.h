@@ -50,7 +50,9 @@ namespace Sc
 																// (non-moving) trigger is created and overlaps with a sleeping
 																// object. Or for the case where a static/kinematic is teleported to a new
 																// location. TOUCH_FOUND should still get sent in that case.
-			LAST							= (NEXT_FREE << 1)
+			WATER_VOLUME					= (NEXT_FREE << 1), // the trigger shape is a registered water volume
+			WATER_TRANSITION				= (NEXT_FREE << 2), // raw overlap changed this step; consumed single-threaded after overlap tests
+			LAST							= (NEXT_FREE << 3)
 		};
 
 											TriggerInteraction(ShapeSimBase& triggerShape, ShapeSimBase& otherShape);

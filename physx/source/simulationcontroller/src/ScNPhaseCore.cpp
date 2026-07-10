@@ -291,6 +291,10 @@ TriggerInteraction* NPhaseCore::createTriggerInteraction(ShapeSimBase& s0, Shape
 	}
 	TriggerInteraction* pair = mTriggerInteractionPool.construct(*triggerShape, *otherShape);
 	pair->setTriggerFlags(triggerFlags);
+
+	if(mOwnerScene.isWaterVolumeShape(&triggerShape->getCore()))
+		pair->raiseFlag(TriggerInteraction::WATER_VOLUME);
+
 	return pair;
 }
 
@@ -575,6 +579,10 @@ static bool findTriggerContacts(TriggerInteraction* tri, bool toBeDeleted, bool 
 	}
 	tri->updateLastFrameHadContacts(overlap);
 
+	// Raw transition, independent of the report pair flags. Resolved single-threaded after all overlap tests.
+	if(hadOverlap != overlap && tri->readFlag(TriggerInteraction::WATER_VOLUME))
+		tri->raiseFlag(TriggerInteraction::WATER_TRANSITION);
+
 	const PxPairFlags triggeredFlags = pairEvent & pairFlags;
 	if(triggeredFlags)
 	{
@@ -814,6 +822,12 @@ void NPhaseCore::concludeTriggerInteractionProcessing(PxBaseTask*)
 
 		PX_ASSERT(tri->readInteractionFlag(InteractionFlag::eIS_ACTIVE));
 
+		if (tri->readFlag(TriggerInteraction::WATER_TRANSITION))
+		{
+			tri->clearFlag(TriggerInteraction::WATER_TRANSITION);
+			mOwnerScene.onWaterTriggerTransition(tri);
+		}
+
 		if (!(tri->readFlag(TriggerInteraction::PROCESS_THIS_FRAME)))
 		{
 			// active trigger pairs for which overlap tests were not forced should remain in the active list
@@ -973,14 +987,22 @@ void NPhaseCore::releaseElementPair(ElementSimInteraction* pair, PxU32 flags, El
 				PxTriggerPair triggerPair;
 				TriggerPairExtraData triggerPairExtra;
 				if (findTriggerContacts(tri, true, (removedElement != NULL),
-										triggerPair, triggerPairExtra, 
-										const_cast<SimStats::TriggerPairCountsNonVolatile&>(mOwnerScene.getStatsInternal().numTriggerPairs), 
+										triggerPair, triggerPairExtra,
+										const_cast<SimStats::TriggerPairCountsNonVolatile&>(mOwnerScene.getStatsInternal().numTriggerPairs),
 										transformCache))
 										// cast away volatile-ness (this is fine since the method does not run in parallel)
 				{
 					mOwnerScene.getTriggerBufferAPI().pushBack(triggerPair);
 					mOwnerScene.getTriggerBufferExtraData().pushBack(triggerPairExtra);
 				}
+
+				// Lost via interaction destruction (broadphase pair break, CCD pass, shape/actor removal). Single-threaded here.
+				if (tri->readFlag(TriggerInteraction::WATER_TRANSITION))
+				{
+					tri->clearFlag(TriggerInteraction::WATER_TRANSITION);
+					mOwnerScene.onWaterTriggerTransition(tri);
+				}
+
 				mTriggerInteractionPool.destroy(tri);
 			}
 			break;
