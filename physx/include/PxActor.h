@@ -95,7 +95,10 @@ struct PxActorFlag
 		Raising this flag will set all velocities and the wake counter to 0, clear all forces, clear the kinematic target, put the actor
 		to sleep and wake up all touching actors from the previous frame.
 		*/
-		eDISABLE_SIMULATION				= (1<<3)
+		eDISABLE_SIMULATION				= (1<<3),
+
+		/** Flagged rigid dynamics share one broadphase filter group so they never pair together; set before adding to a scene. */
+		eSHARED_BP_GROUP				= (1<<4)
 	};
 };
 

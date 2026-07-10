@@ -59,6 +59,9 @@ static PX_INLINE Bp::FilterGroup::Enum getBPGroup(const ShapeSimBase& shapeSim)
 	if (isKinematic && bs->hasForcedKinematicNotif())
 		isKinematic = false;
 
+	if (bs && (rbSim.getActorCore().getActorFlags() & PxActorFlag::eSHARED_BP_GROUP))
+		return Bp::getFilterGroup_SharedDynamics(isKinematic);
+
 	return Bp::getFilterGroup(rbSim.getActorType() == PxActorType::eRIGID_STATIC, rbSim.getActorID(), isKinematic);
 }
 
