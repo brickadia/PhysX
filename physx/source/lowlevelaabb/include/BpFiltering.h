@@ -96,6 +96,12 @@ namespace physx
 		return isStatic ? getFilterGroup_Statics() : getFilterGroup_Dynamics(rigidId, isKinematic);
 	}
 
+	/** Group for PxActorFlag::eSHARED_BP_GROUP actors; id 0x0ffffff0 is unreachable by real rigid ids and below the aggregate tail. */
+	PX_FORCE_INLINE	Bp::FilterGroup::Enum	getFilterGroup_SharedDynamics(bool isKinematic)
+	{
+		return getFilterGroup_Dynamics(0x0ffffff0, isKinematic);
+	}
+
 	PX_FORCE_INLINE bool groupFiltering(const Bp::FilterGroup::Enum group0, const Bp::FilterGroup::Enum group1, const bool* PX_RESTRICT lut)
 	{
 /*		const int g0 = group0 & ~3;
