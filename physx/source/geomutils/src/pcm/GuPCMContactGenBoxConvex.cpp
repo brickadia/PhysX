@@ -578,6 +578,7 @@ bool Gu::generateFullContactManifold(const PolygonalData& polyData0, const Polyg
 #if PCM_GRAZING_CONTACT_FILTER
 		// Grazing contact filter: check if any non-winning face axis has overlap
 		// below threshold. If so, this is a seam/edge grazing contact.
+		if(outGrazingSuspect)
 		{
 			float contactDistF;
 			FStore(contactDist, &contactDistF);
@@ -744,7 +745,7 @@ EdgeTest:
 
 #if PCM_GRAZING_CONTACT_FILTER
 		// Runs after generation and only for small manifolds so resting face contacts skip the SAT rerun.
-		if(numContacts <= 4)
+		if(outGrazingSuspect && numContacts <= 4)
 		{
 			float contactDistF;
 			FStore(contactDist, &contactDistF);

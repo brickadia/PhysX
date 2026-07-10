@@ -63,7 +63,7 @@ static bool fullContactsGenerationConvexConvex(const GjkConvex* relativeConvex, 
 	bool grazingSuspect = false;
 
 	if(generateFullContactManifold(polyData0, polyData1, map0, map1, manifoldContacts, numContacts, contactDist, normal, closestA, closestB, convexHull0.getMarginF(),
-		convexHull1.getMarginF(), doOverlapTest, renderOutput, toleranceLength, &grazingSuspect))
+		convexHull1.getMarginF(), doOverlapTest, renderOutput, toleranceLength, contactBuffer.lowFidelity ? NULL : &grazingSuspect))
 	{
 		// The zero-clip path still emits the GJK seed point below, so the flag must not depend on the clip count.
 		if(grazingSuspect)

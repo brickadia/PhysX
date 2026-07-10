@@ -331,7 +331,7 @@ static void calculateContacts(const FloatVArg extentX_, const FloatVArg extentY_
 	}
 }
 
-static PxU32 doBoxBoxGenerateContacts(const Vec3VArg box0Extent, const Vec3VArg box1Extent, const PxMatTransformV& transform0, const PxMatTransformV& transform1, const FloatVArg contactDist, PersistentContact* manifoldContacts, PxU32& numContacts, bool& outGrazingContact, float& outMinOverlap)
+static PxU32 doBoxBoxGenerateContacts(const Vec3VArg box0Extent, const Vec3VArg box1Extent, const PxMatTransformV& transform0, const PxMatTransformV& transform1, const FloatVArg contactDist, PersistentContact* manifoldContacts, PxU32& numContacts, bool grazingCheck, bool& outGrazingContact, float& outMinOverlap)
 {
 	outGrazingContact = false;
 
@@ -639,6 +639,7 @@ static PxU32 doBoxBoxGenerateContacts(const Vec3VArg box0Extent, const Vec3VArg 
 
 #if PCM_GRAZING_CONTACT_FILTER
 	// Flags manifolds where a non-winning axis nearly separates (seam-grazing suspect).
+	if(grazingCheck)
 	{
 		const Vec3V axes[6] = {
 			transform0.getCol0(), transform0.getCol1(), transform0.getCol2(),
@@ -956,7 +957,7 @@ bool Gu::pcmContactBoxBox(GU_CONTACT_METHOD_ARGS)
 	
 		bool grazingContact = false;
 		float satMinOverlap = 0.0f;
-		const bool generateResult = doBoxBoxGenerateContacts(boxExtents0, boxExtents1, transfV0, transfV1, contactDist, manifoldContacts, numContacts, grazingContact, satMinOverlap);
+		const bool generateResult = doBoxBoxGenerateContacts(boxExtents0, boxExtents1, transfV0, transfV1, contactDist, manifoldContacts, numContacts, !contactBuffer.lowFidelity, grazingContact, satMinOverlap);
 
 		if(!generateResult)
 		{

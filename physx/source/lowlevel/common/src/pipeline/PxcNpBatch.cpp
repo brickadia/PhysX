@@ -39,6 +39,7 @@
 #include "PxsContactManagerState.h"
 #include "PxcNpThreadContext.h"
 #include "PxcMaterialMethodImpl.h"
+#include "PxShape.h"
 
 // PT: use this define to enable detailed analysis of the NP functions.
 //#define LOCAL_PROFILE_ZONE(x, y)	PX_PROFILE_ZONE(x, y)
@@ -414,6 +415,9 @@ static PX_FORCE_INLINE void discreteNarrowPhase(PxcNpThreadContext& context, con
 	updateDiscreteContactStats(context, type0, type1);
 
 	startContacts(output, context);
+
+	// BR: per-pair input for PCM contact gen, must be stamped after the reset in startContacts.
+	context.mContactBuffer.lowFidelity = ((shape0->mShapeFlags | shape1->mShapeFlags) & PxShapeFlag::eLOW_FIDELITY_CONTACTS) != 0;
 
 	const PxTransform32* tm0 = reinterpret_cast<const PxTransform32*>(cachedTransform0);
 	const PxTransform32* tm1 = reinterpret_cast<const PxTransform32*>(cachedTransform1);
