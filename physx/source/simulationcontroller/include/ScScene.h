@@ -48,6 +48,7 @@
 #include "PxsContext.h"
 #include "GuPrunerTypedef.h"
 #include "DyContext.h"
+#include "PxsWaterVolume.h"
 #include "ScFiltering.h"
 #include "ScBroadphase.h"
 #include "ScInteraction.h"
@@ -167,6 +168,8 @@ namespace Sc
 	class ParticleSystemSim;
 	class SimStats;
 	struct SimStateData;
+	class TriggerInteraction;
+	class ShapeSimBase;
 
 	struct BatchInsertionState
 	{
@@ -308,6 +311,23 @@ namespace Sc
 
 	PX_FORCE_INLINE	void						setDynamicsDirty()								{ mDynamicsContext->setStateDirty(true);		}
 	//~mDynamicsContext wrappers
+
+	// Water volumes
+					PxU32						addWaterVolume(const ShapeCore* shapeCore, const PxsWaterVolume& params);
+					bool						addWaterVolumeShape(PxU32 handle, const ShapeCore& shapeCore);
+					void						removeWaterVolumeShape(const ShapeCore& shapeCore);
+					void						updateWaterVolume(PxU32 handle, const PxsWaterVolume& params);
+					void						removeWaterVolume(PxU32 handle);
+					bool						isValidWaterVolume(PxU32 handle)	const;
+					PxU16						getWaterVolumeSlot(const ShapeCore* shapeCore)	const;
+	PX_FORCE_INLINE	void						setDefaultWaterVolumeInternal(PxU16 handle)		{ mDefaultWaterVolume = handle;	}
+	PX_FORCE_INLINE	PxU16						getDefaultWaterVolume()	const					{ return mDefaultWaterVolume;	}
+					void						linkWaterVolumeBody(BodySim& body, PxU16 slot);
+					void						unlinkWaterVolumeBody(BodySim& body, PxU16 slot);
+					void						wakeWaterVolumeBodies(PxU32 handle);
+					void						onWaterTriggerTransition(TriggerInteraction* tri);
+	PX_FORCE_INLINE	bool						isWaterVolumeShape(const ShapeCore* shapeCore)	const	{ return mWaterVolumeShapeMap.find(shapeCore) != NULL;	}
+	//~Water volumes
 
 	// mLLContext wrappers
 	PX_FORCE_INLINE	PxsContext*					getLowLevelContext()							{ return mLLContext; }
@@ -768,6 +788,21 @@ namespace Sc
 					PxArray<BodySim*>				mCcdBodies;
 					PxArray<PxTriggerPair>			mTriggerBufferAPI;
 					PxArray<TriggerPairExtraData>*	mTriggerBufferExtraData;
+
+					struct WaterVolumeSlot
+					{
+						PxArray<const ShapeCore*>	shapes;
+						BodySim*					bodyListHead;
+						bool						used;
+					};
+
+					PxArray<PxsWaterVolume>				mWaterVolumeParams;
+					PxArray<WaterVolumeSlot>			mWaterVolumeSlots;
+					PxArray<PxU16>						mWaterVolumeFreeSlots;
+					PxHashMap<const ShapeCore*, PxU16>	mWaterVolumeShapeMap;
+					PxU16								mDefaultWaterVolume = 0xffffu;
+
+					void						flagWaterVolumeInteractions(ShapeSimBase& shapeSim, bool isWater);
 
 					PxCoalescedHashSet<ArticulationCore*> mArticulations;
 					PxCoalescedHashSet<ArticulationSim*> mDirtyArticulationSims;

@@ -29,6 +29,7 @@
 #include "ScElementSim.h"
 #include "ScElementSimInteraction.h"
 #include "ScSimStats.h"
+#include "ScBodySim.h"
 
 using namespace physx;
 using namespace Sc;
@@ -124,6 +125,10 @@ void Sc::ShapeManager::onElementDetach(ElementSim& element)
 	}
 	mShapes.replaceWithLast(index, gElemSimTableStorageManager);
 	element.mShapeArrayIndex = 0xffffffff;
+
+	ActorSim& actor = static_cast<ActorSim&>(*this);
+	if(actor.isDynamicRigid() && !actor.readInternalFlag(ActorSim::BF_ON_DEATHROW))
+		static_cast<BodySim&>(actor).rebuildBuoyancyShapes();
 }
 
 Sc::ElementSim::ElementSim(ActorSim& actor) :

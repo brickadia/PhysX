@@ -176,6 +176,17 @@ public:
 	virtual ~PxPostSolveCallback() {}
 };
 
+/** Surface and response parameters of a scene water volume; the region is defined by a registered trigger shape. */
+struct PxWaterVolumeDesc
+{
+	PxReal	surfaceHeight;
+	PxReal	forceScale;
+	PxReal	linearDrag;
+	PxReal	angularDrag;
+
+	PxWaterVolumeDesc() : surfaceHeight(0.0f), forceScale(0.0f), linearDrag(0.0f), angularDrag(0.0f) {}
+};
+
 /** 
  \brief A scene is a collection of bodies and constraints which can interact.
 
@@ -1209,6 +1220,27 @@ class PxScene : public PxSceneSQSystem
 	\see setGravity() PxSceneDesc.gravity
 	*/
 	virtual PxVec3				getGravity() const = 0;
+
+	/** Registers an exclusive trigger shape as a water volume; CPU TGS scenes only, not while simulating. Returns PX_WATER_VOLUME_INVALID on failure. */
+	virtual PxU32				addWaterVolume(PxShape& triggerShape, const PxWaterVolumeDesc& desc) = 0;
+
+	/** Registers a regionless water volume; it only affects bodies via setDefaultWaterVolume() or per-body overrides. */
+	virtual PxU32				addWaterVolume(const PxWaterVolumeDesc& desc) = 0;
+
+	/** Bodies with no trigger-assigned volume and no override use this volume. PX_WATER_VOLUME_INVALID clears it. Wakes bodies whose assignment changes. */
+	virtual void				setDefaultWaterVolume(PxU32 handle) = 0;
+
+	/** Registers an additional exclusive trigger shape for an existing water volume; shapes sharing a volume share its surface and response. */
+	virtual bool				addWaterVolumeShape(PxU32 handle, PxShape& triggerShape) = 0;
+
+	/** Unregisters a trigger shape from its water volume without removing the volume; bodies re-resolve. */
+	virtual void				removeWaterVolumeShape(PxShape& triggerShape) = 0;
+
+	/** Updates a water volume's parameters and wakes its assigned bodies. Not while simulating. */
+	virtual void				updateWaterVolume(PxU32 handle, const PxWaterVolumeDesc& desc) = 0;
+
+	/** Removes a water volume, waking and unassigning its bodies and clearing overrides pointing at it. Not while simulating. */
+	virtual void				removeWaterVolume(PxU32 handle) = 0;
 
 	/**
 	\brief Set the bounce threshold velocity.  Collision speeds below this threshold will not cause a bounce.

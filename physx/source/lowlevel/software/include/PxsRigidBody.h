@@ -57,7 +57,8 @@ class PxsRigidBody
 		eENABLE_GYROSCOPIC		=	1 << 7,
 		eRETAIN_ACCELERATION	=	1 << 8,
 		eFIRST_BODY_COPY_GPU	=	1 << 9, // Flag to raise to indicate that the body is DMA'd to the GPU for the first time
-		eVELOCITY_COPY_GPU		=	1 << 10	 // Flag to raise to indicate that linear and angular velocities should be  DMA'd to the GPU
+		eVELOCITY_COPY_GPU		=	1 << 10, // Flag to raise to indicate that linear and angular velocities should be  DMA'd to the GPU
+		eTOUCHING_WATER			=	1 << 11	 // Set by TGS pre-integration when buoyancy applied a force this step; persists while asleep
 	};
 
 	PX_FORCE_INLINE						PxsRigidBody(PxsBodyCore* core, PxReal freeze_count) :
@@ -69,7 +70,11 @@ class PxsRigidBody
 											mSleepLinVelAcc			(PxVec3(0.0f)),
 											mFreezeCount			(freeze_count),
 											mSleepAngVelAcc			(PxVec3(0.0f)),
-											mAccelScale				(1.0f)
+											mAccelScale				(1.0f),
+											mBuoyancyShapes			(0),
+											mBuoyancyScale			(1.0f),
+											mNbBuoyancyShapes		(0),
+											mWaterVolumeIndex		(0xffff)
 																	{}
 
 	PX_FORCE_INLINE						~PxsRigidBody()																			{}
@@ -138,6 +143,12 @@ class PxsRigidBody
 	   
 					PxVec3				mSleepAngVelAcc;		//76
 					PxReal				mAccelScale;			//80
+
+					// Buoyancy shape view: 0 shapes = null, 1 shape = direct PxsShapeCore*, >1 = PxsShapeCore** owned by BodySim.
+					uintptr_t			mBuoyancyShapes;		//88
+					PxReal				mBuoyancyScale;			//92
+					PxU16				mNbBuoyancyShapes;		//94
+					PxU16				mWaterVolumeIndex;		//96	// 0xffff = no assigned water volume
 }
 PX_ALIGN_SUFFIX(16);
 PX_COMPILE_TIME_ASSERT(0 == (sizeof(PxsRigidBody) & 0x0f));

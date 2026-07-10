@@ -36,6 +36,7 @@
 #include "PxsContactManager.h"
 #include "DyTGSDynamics.h"
 #include "DyBodyCoreIntegrator.h"
+#include "DyBuoyancy.h"
 #include "DySolverCore.h"
 #include "DySolverControl.h"
 #include "DySolverContact.h"
@@ -1048,15 +1049,32 @@ void DynamicsTGSContext::preIntegrateBodies(PxsBodyCore** bodyArray, PxsRigidBod
 	for (PxU32 i = 0; i < bodyCount; ++i)
 	{
 		PxsBodyCore& core = *bodyArray[i];
-		const PxsRigidBody& rBody = *originalBodyArray[i];
+		PxsRigidBody& rBody = *originalBodyArray[i];
 
 		const PxU16 iterWord = core.solverIterationCounts;
 		localMaxPosIter = PxMax<PxU32>(PxU32(iterWord & 0xff), localMaxPosIter);
 		localMaxVelIter = PxMax<PxU32>(PxU32(iterWord >> 8), localMaxVelIter);
 
+		PxVec3 buoyancyLinAccel(0.0f);
+		PxVec3 buoyancyAngAccel(0.0f);
+		PxReal waterLinearDrag = 0.0f;
+		PxReal waterAngularDrag = 0.0f;
+		bool touchingWater = false;
+
+		if(mNbWaterVolumes && rBody.mWaterVolumeIndex != PXS_INVALID_WATER_VOLUME && rBody.mBuoyancyScale > 0.0f)
+		{
+			PX_ASSERT(rBody.mWaterVolumeIndex < mNbWaterVolumes);
+			touchingWater = computeBodyBuoyancy(rBody, core, mWaterVolumes[rBody.mWaterVolumeIndex], buoyancyLinAccel, buoyancyAngAccel, waterLinearDrag, waterAngularDrag);
+		}
+
+		if(touchingWater)
+			rBody.mInternalFlags |= PxsRigidBody::eTOUCHING_WATER;
+		else
+			rBody.mInternalFlags &= PxU16(~PxsRigidBody::eTOUCHING_WATER);
+
 		//const Cm::SpatialVector& accel = originalBodyArray[i]->getAccelerationV();
-		bodyCoreComputeUnconstrainedVelocity(gravity, dt, core.linearDamping, core.angularDamping, rBody.mAccelScale, core.maxLinearVelocitySq, core.maxAngularVelocitySq,
-			core.linearVelocity, core.angularVelocity, core.disableGravity!=0 || skipGravity);
+		bodyCoreComputeUnconstrainedVelocity(gravity, dt, core.linearDamping + waterLinearDrag, core.angularDamping + waterAngularDrag, rBody.mAccelScale, core.maxLinearVelocitySq, core.maxAngularVelocitySq,
+			core.linearVelocity, core.angularVelocity, core.disableGravity!=0 || skipGravity, buoyancyLinAccel, buoyancyAngAccel);
 
 		copyToSolverBodyDataStep(core.linearVelocity, core.angularVelocity, core.inverseMass, core.inverseInertia, core.body2World, core.maxPenBias, core.maxContactImpulse, nodeIndexArray[i],
 			core.contactReportThreshold, core.maxAngularVelocitySq, core.lockFlags, false,

@@ -31,6 +31,7 @@
 
 #include "foundation/PxTransform.h"
 #include "foundation/PxBounds3.h"
+#include "foundation/PxPlane.h"
 #include "geometry/PxGeometry.h"
 #include "geometry/PxGeometryHit.h"
 #include "geometry/PxGeometryQueryContext.h"
@@ -223,6 +224,13 @@ namespace physx
 			\param[out] massProperties	Mass properties to compute.
 			*/
 			virtual void computeMassProperties(const PxGeometry& geometry, PxMassProperties& massProperties) const = 0;
+
+			/** Optional buoyancy support: volume below the local-space water plane (normal points out of the water). False = no buoyancy. */
+			virtual bool computeSubmergedVolume(const PxGeometry& geometry, const PxPlane& localPlane, PxReal& submergedVolume, PxVec3& centerOfBuoyancy, PxReal& totalVolume) const
+			{
+				PX_UNUSED(geometry); PX_UNUSED(localPlane); PX_UNUSED(submergedVolume); PX_UNUSED(centerOfBuoyancy); PX_UNUSED(totalVolume);
+				return false;
+			}
 
 			/**
 			\brief Compatible with PhysX's PCM feature. Allows to optimize contact generation.

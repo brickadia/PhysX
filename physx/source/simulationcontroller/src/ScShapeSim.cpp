@@ -27,6 +27,8 @@
 // Copyright (c) 2001-2004 NovodeX AG. All rights reserved.  
 
 #include "ScShapeSim.h"
+#include "ScBodySim.h"
+#include "PxsWaterVolume.h"
 
 using namespace physx;
 using namespace Sc;
@@ -38,12 +40,21 @@ ShapeSim::ShapeSim(ActorSim& owner, ShapeCore& core) : ShapeSimBase(owner, &core
 	const PxU32 index = getElementID();
 	initSubsystemsDependingOnElementID(index);
 	core.setExclusiveSim(this);
+
+	BodySim* body = getBodySim();
+	if(body)
+		body->rebuildBuoyancyShapes();
 }
 
 ShapeSim::~ShapeSim()
 {
-	Sc::ShapeCore::getCore(*mShapeCore).setExclusiveSim(NULL);
+	Sc::ShapeCore& core = Sc::ShapeCore::getCore(*mShapeCore);
 	Scene& scScene = getScene();
+
+	// Implicit removal keeps the registry free of dangling ShapeCore pointers when the shape is released directly.
+	scScene.removeWaterVolumeShape(core);
+
+	core.setExclusiveSim(NULL);
 	resetElementID(scScene, *this);
 }
 
