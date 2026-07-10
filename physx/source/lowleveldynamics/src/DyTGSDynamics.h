@@ -173,6 +173,10 @@ public:
 	//~Context
 
 					void				updatePostKinematic(IG::SimpleIslandManager& simpleIslandManager, PxBaseTask* continuation, PxBaseTask* lostTouchTask, PxU32 maxLinks);
+
+				// Public entry so a worker task can run one island batch's solveIsland off the serial path.
+				void				solveIslandFromTask(const SolverIslandObjectsStep& objects, const PxsIslandIndices& counts, PxU32 solverBodyOffset,
+										IG::SimpleIslandManager& islandManager, PxBaseTask* continuation);
 protected:
 
 	// PT: TODO: the thread stats are missing for TGS
