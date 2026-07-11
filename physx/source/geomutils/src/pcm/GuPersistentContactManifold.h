@@ -515,6 +515,29 @@ public:
 		return invalidate(curRTrans, minMargin, FLoad(0.2f));
 	}
 
+	// BR: rotation gate via far-point displacement; quat-dot gates saturate in fp32 for large radii.
+	PX_FORCE_INLINE PxU32 invalidate(const aos::PxTransformV& curRTrans, const aos::FloatVArg minMargin, const aos::FloatVArg ratio, const aos::Vec3VArg farExtents) const
+	{
+		using namespace aos;
+
+		const FloatV thresholdP = FMul(minMargin, ratio);
+		const FloatV deltaP = maxTransformPositionDelta(curRTrans.p);
+
+		const Vec3V pX = V3Scale(V3UnitX(), V3GetX(farExtents));
+		const Vec3V pY = V3Scale(V3UnitY(), V3GetY(farExtents));
+		const Vec3V pZ = V3Scale(V3UnitZ(), V3GetZ(farExtents));
+
+		const Vec3V dX = V3Sub(QuatRotate(curRTrans.q, pX), QuatRotate(mRelativeTransform.q, pX));
+		const Vec3V dY = V3Sub(QuatRotate(curRTrans.q, pY), QuatRotate(mRelativeTransform.q, pY));
+		const Vec3V dZ = V3Sub(QuatRotate(curRTrans.q, pZ), QuatRotate(mRelativeTransform.q, pZ));
+
+		const FloatV maxDispSq = FMax(V3Dot(dX, dX), FMax(V3Dot(dY, dY), V3Dot(dZ, dZ)));
+		const FloatV thresholdSq = FMul(thresholdP, thresholdP);
+		const BoolV con = BOr(FIsGrtr(deltaP, thresholdP), FIsGrtr(maxDispSq, thresholdSq));
+
+		return BAllEqTTTT(con);
+	}
+
 	// This function work out the contact patch connectivity. If two patches's normal are within 5 degree, we would link these two patches together and reset the total size.
 	PX_FORCE_INLINE void refineContactPatchConnective(PCMContactPatch** contactPatch, PxU32 numContactPatch, MeshPersistentContact* manifoldContacts, const aos::FloatVArg acceptanceEpsilon)	const
 	{

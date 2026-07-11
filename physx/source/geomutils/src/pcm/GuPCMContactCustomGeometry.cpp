@@ -594,7 +594,15 @@ static bool pcmContactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 		multiManifold.refreshManifold(aToB, projectBreakingThreshold, FLoad(params.mContactDistance));
 		const bool bLostContacts = countContacts() != initialContacts;
 
-		if(bLostContacts || multiManifold.invalidate(curRTrans, FLoad(breakingThreshold)))
+		// BR: shape0's per-axis far extents are the rotation lever arms (manifold refreshes shape0-local points)
+		PxVec3 farExtents(1.0f);
+		{
+			const PxBounds3 localBounds0 = customGeom.callbacks->getLocalBounds(customGeom);
+			if(!localBounds0.isEmpty())
+				farExtents = (localBounds0.getCenter().abs() + localBounds0.getExtents()).maximum(PxVec3(1.0f));
+		}
+
+		if(bLostContacts || multiManifold.invalidate(curRTrans, FLoad(breakingThreshold), FLoad(0.2f), V3LoadU(&farExtents.x)))
 		{
 			multiManifold.initialize();
 			multiManifold.setRelativeTransform(curRTrans);
