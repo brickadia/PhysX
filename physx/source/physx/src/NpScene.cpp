@@ -441,6 +441,7 @@ bool NpScene::addWaterVolumeShape(PxU32 handle, PxShape& triggerShape)
 	PX_CHECK_AND_RETURN_VAL(npShape.getFlags() & PxShapeFlag::eTRIGGER_SHAPE, "PxScene::addWaterVolumeShape(): the shape must have PxShapeFlag::eTRIGGER_SHAPE.", false);
 
 	PxRigidActor* actor = npShape.getActor();
+	PX_UNUSED(actor);
 	PX_CHECK_AND_RETURN_VAL(actor && actor->getScene() == this, "PxScene::addWaterVolumeShape(): the trigger shape's actor must be in this scene.", false);
 	PX_CHECK_AND_RETURN_VAL(mScene.isValidWaterVolume(handle), "PxScene::addWaterVolumeShape(): invalid water volume handle.", false);
 
