@@ -308,6 +308,7 @@ void PxsContext::createCache(Gu::Cache& cache, const PxcNpWorkUnit& workUnit)
 			else if (geomType0 == PxGeometryType::eCUSTOM || geomType1 == PxGeometryType::eCUSTOM)
 			{
 				bool needMulti, needSphere;
+				PxU8 pairData = 0;
 
 				const PxGeometry& geometry0 = workUnit.getShapeCore0()->mGeometry.getGeometry();
 				const PxGeometry& geometry1 = workUnit.getShapeCore1()->mGeometry.getGeometry();
@@ -315,15 +316,17 @@ void PxsContext::createCache(Gu::Cache& cache, const PxcNpWorkUnit& workUnit)
 				if (geomType0 == PxGeometryType::eCUSTOM)
 				{
 					const PxCustomGeometry::Callbacks* callbacks = static_cast<const PxCustomGeometry&>(geometry0).callbacks;
-					needMulti = callbacks->needsMultiManifold(geometry0, geometry1);
+					needMulti = callbacks->needsMultiManifold(geometry0, geometry1, pairData);
 					needSphere = geomType1 == PxGeometryType::eSPHERE;
 				}
 				else
 				{
 					const PxCustomGeometry::Callbacks* callbacks = static_cast<const PxCustomGeometry&>(geometry1).callbacks;
-					needMulti = callbacks->needsMultiManifold(geometry1, geometry0);
+					needMulti = callbacks->needsMultiManifold(geometry1, geometry0, pairData);
 					needSphere = geomType0 == PxGeometryType::eSPHERE;
 				}
+
+				cache.mPairData = pairData;
 
 				if (needMulti)
 				{

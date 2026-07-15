@@ -56,7 +56,7 @@ public:
 
 		// override PxCustomGeometry::Callbacks
 		virtual PxBounds3 getLocalBounds(const PxGeometry& geometry) const;
-		virtual bool needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1) const override;
+		virtual bool needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1, PxU8& pairData) const override;
 		virtual bool generateContacts(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1,
 			const PxReal contactDistance, const PxReal meshContactMargin, const PxReal toleranceLength,
 			PxCache& cache, PxContactBuffer& contactBuffer, PxRenderOutput* renderOutput) const;

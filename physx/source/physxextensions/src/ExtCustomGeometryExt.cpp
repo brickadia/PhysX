@@ -182,10 +182,11 @@ PxBounds3 PxCustomGeometryExt::BaseConvexCallbacks::getLocalBounds(const PxGeome
 	return bounds;
 }
 
-bool PxCustomGeometryExt::BaseConvexCallbacks::needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1) const
+bool PxCustomGeometryExt::BaseConvexCallbacks::needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1, PxU8& pairData) const
 {
 	PX_UNUSED(geom0);
 	PX_UNUSED(geom1);
+	pairData = 0;
 	
 	return false;
 }
