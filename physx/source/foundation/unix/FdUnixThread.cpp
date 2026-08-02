@@ -32,14 +32,16 @@
 #include "foundation/PxThread.h"
 
 #include <math.h>
-#if !PX_APPLE_FAMILY && !defined(__CYGWIN__) && !PX_EMSCRIPTEN
+#if !PX_APPLE_FAMILY && !defined(__CYGWIN__) && !PX_EMSCRIPTEN && !PX_PS5
 #include <bits/local_lim.h> // PTHREAD_STACK_MIN
 #endif
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#if !PX_PS5
 #include <sys/syscall.h>
-#if !PX_APPLE_FAMILY && !PX_EMSCRIPTEN
+#endif
+#if !PX_APPLE_FAMILY && !PX_EMSCRIPTEN && !PX_PS5
 #include <asm/unistd.h>
 #include <sys/resource.h>
 #endif
@@ -95,6 +97,8 @@ static void setTid(ThreadImpl& threadImpl)
 	threadImpl.tid = syscall(SYS_gettid);
 #elif PX_EMSCRIPTEN
 	threadImpl.tid = pthread_self();
+#elif PX_PS5
+	threadImpl.tid = 0;
 #else
 	threadImpl.tid = syscall(__NR_gettid);
 #endif
@@ -286,7 +290,7 @@ uint32_t PxThreadImpl::setAffinityMask(uint32_t mask)
 
 	if(getThread(this)->state == ePxThreadStarted)
 	{
-#if PX_EMSCRIPTEN
+#if PX_EMSCRIPTEN || PX_PS5
 		// not supported
 #elif !PX_APPLE_FAMILY // Apple doesn't support syscall with getaffinity and setaffinity
 		int32_t errGet = syscall(__NR_sched_getaffinity, getThread(this)->tid, sizeof(prevMask), &prevMask);
@@ -390,6 +394,9 @@ uint32_t PxThreadImpl::getNbPhysicalCores()
 	size_t size = sizeof(count);
 	return sysctlbyname("hw.physicalcpu", &count, &size, NULL, 0) ? 0 : count;
 #else
+#if PX_PS5
+	return 8;
+#else
 	// Linux exposes CPU topology using /sys/devices/system/cpu
 	// https://www.kernel.org/doc/Documentation/cputopology.txt
 	if(FILE* f = fopen("/sys/devices/system/cpu/possible", "r"))
@@ -411,6 +418,7 @@ uint32_t PxThreadImpl::getNbPhysicalCores()
 		return 0;
 	else
 		return n;
+#endif
 #endif
 }
 

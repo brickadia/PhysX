@@ -35,7 +35,7 @@
 // this file is for internal intrinsics - that is, intrinsics that are used in
 // cross platform code but do not appear in the API
 
-#if !(PX_LINUX || PX_APPLE_FAMILY)
+#if !(PX_LINUX || PX_APPLE_FAMILY || PX_PS5)
 #error "This file should only be included by unix builds!!"
 #endif
 

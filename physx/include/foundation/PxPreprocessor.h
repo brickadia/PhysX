@@ -95,6 +95,8 @@ Operating system defines, see http://sourceforge.net/p/predef/wiki/OperatingSyst
 	#define PX_WIN32 1
 #elif defined(__linux__) || defined (__EMSCRIPTEN__)
 	#define PX_LINUX 1
+#elif defined(__PROSPERO__)
+	#define PX_PS5 1
 #elif defined(__APPLE__)
 	#define PX_OSX 1
 #elif defined(__NX__)
@@ -162,6 +164,9 @@ define anything not defined on this platform to 0
 #ifndef PX_SWITCH
 	#define PX_SWITCH 0
 #endif
+#ifndef PX_PS5
+	#define PX_PS5 0
+#endif
 #ifndef PX_X64
 	#define PX_X64 0
 #endif
@@ -218,7 +223,7 @@ family shortcuts
 #define PX_WINDOWS_FAMILY (PX_WIN32 || PX_WIN64)
 #define PX_LINUX_FAMILY PX_LINUX
 #define PX_APPLE_FAMILY PX_OSX                              // equivalent to #if __APPLE__
-#define PX_UNIX_FAMILY (PX_LINUX_FAMILY || PX_APPLE_FAMILY) // shortcut for unix/posix platforms
+#define PX_UNIX_FAMILY (PX_LINUX_FAMILY || PX_APPLE_FAMILY || PX_PS5) // shortcut for unix/posix platforms
 #if defined(__EMSCRIPTEN__)
 	#define PX_EMSCRIPTEN 1
 #else
@@ -256,7 +261,7 @@ Assert macro
 DLL export macros
 */
 #ifndef PX_C_EXPORT
-	#if PX_WINDOWS_FAMILY || PX_LINUX
+	#if PX_WINDOWS_FAMILY || PX_LINUX || PX_PS5
 		#define PX_C_EXPORT extern "C"
 	#else
 		#define PX_C_EXPORT
@@ -418,7 +423,7 @@ General defines
 */
 
 
-#if PX_LINUX && PX_CLANG && !PX_CUDA_COMPILER
+#if (PX_LINUX || PX_PS5) && PX_CLANG && !PX_CUDA_COMPILER
 #define PX_COMPILE_TIME_ASSERT(exp) \
 _Pragma(" clang diagnostic push") \
 _Pragma(" clang diagnostic ignored \"-Wc++98-compat\"") \

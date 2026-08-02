@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Win64', 'Linux')]
+    [ValidateSet('Win64', 'Linux', 'PS5')]
     [string]$Platform,
 
     [ValidateSet('debug', 'checked', 'profile', 'release')]
@@ -84,6 +84,30 @@ switch ($Platform) {
             }
             Invoke-Build 'release-lto' {
                 cmake --build "$PhysXRoot\compiler\linux-crosscompile-brickadia-lto-ninja-release"
+            }
+        }
+    }
+    'PS5' {
+        if (-not (Test-Path "$env:SCE_PROSPERO_SDK_DIR\host_tools\bin\prospero-clang.exe")) {
+            Write-Host 'Error: PS5 SDK (SCE_PROSPERO_SDK_DIR) is not installed.'
+            exit 1
+        }
+
+        $env:PM_PACKAGES_ROOT = "$PhysXRoot\packages"
+
+        $StandardConfigs = $Configs | Where-Object { $_ -ne 'release' }
+        foreach ($Config in $StandardConfigs) {
+            Invoke-Build $Config {
+                cmake --build "$PhysXRoot\compiler\ps5-brickadia-ninja-$Config"
+            }
+        }
+
+        if ('release' -in $Configs) {
+            Invoke-Build 'release' {
+                cmake --build "$PhysXRoot\compiler\ps5-brickadia-ninja-release"
+            }
+            Invoke-Build 'release-lto' {
+                cmake --build "$PhysXRoot\compiler\ps5-brickadia-lto-ninja-release"
             }
         }
     }

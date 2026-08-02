@@ -1,0 +1,40 @@
+# Minimal PS5 (Prospero) cross toolchain for static library builds.
+# Deliberately avoids Sony's "CMake Extensions for PS5" so any stock CMake works;
+# CMAKE_SYSTEM_NAME Generic keeps CMake from probing for a hosted platform.
+
+SET(CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+
+SET(CMAKE_CROSSCOMPILING TRUE)
+SET(CMAKE_SYSTEM_NAME Generic)
+SET(CMAKE_SYSTEM_VERSION 1)
+SET(CMAKE_SYSTEM_PROCESSOR x86_64)
+
+FILE(TO_CMAKE_PATH "$ENV{SCE_PROSPERO_SDK_DIR}" SCE_PROSPERO_SDK_DIR)
+IF(NOT EXISTS "${SCE_PROSPERO_SDK_DIR}")
+	MESSAGE(FATAL_ERROR "SCE_PROSPERO_SDK_DIR environment variable wasn't set or was invalid.")
+ENDIF()
+
+SET(SCE_HOST_TOOLS_BIN_DIR "${SCE_PROSPERO_SDK_DIR}/host_tools/bin")
+
+SET(CMAKE_C_COMPILER   "${SCE_HOST_TOOLS_BIN_DIR}/prospero-clang.exe")
+SET(CMAKE_CXX_COMPILER "${SCE_HOST_TOOLS_BIN_DIR}/prospero-clang.exe")
+SET(CMAKE_AR           "${SCE_HOST_TOOLS_BIN_DIR}/prospero-llvm-ar.exe"      CACHE FILEPATH "archiver")
+SET(CMAKE_LINKER       "${SCE_HOST_TOOLS_BIN_DIR}/prospero-lld.exe"          CACHE FILEPATH "linker")
+SET(CMAKE_NM           "${SCE_HOST_TOOLS_BIN_DIR}/prospero-llvm-nm.exe"      CACHE FILEPATH "nm")
+SET(CMAKE_OBJCOPY      "${SCE_HOST_TOOLS_BIN_DIR}/prospero-llvm-objcopy.exe" CACHE FILEPATH "objcopy")
+SET(CMAKE_OBJDUMP      "${SCE_HOST_TOOLS_BIN_DIR}/prospero-llvm-objdump.exe" CACHE FILEPATH "objdump")
+
+# The SDK ships no ranlib; fold the symbol table generation into ar.
+FOREACH(lang C CXX)
+	SET(CMAKE_${lang}_CREATE_STATIC_LIBRARY "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
+ENDFOREACH()
+SET(CMAKE_RANLIB "" CACHE FILEPATH "ranlib not used on PS5")
+
+SET(CMAKE_STATIC_LIBRARY_PREFIX "lib")
+SET(CMAKE_STATIC_LIBRARY_SUFFIX ".a")
+
+SET(CMAKE_FIND_ROOT_PATH "${SCE_PROSPERO_SDK_DIR}/target")
+SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+SET(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)

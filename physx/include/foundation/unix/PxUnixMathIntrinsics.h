@@ -31,11 +31,11 @@
 
 #include "foundation/PxAssert.h"
 
-#if !(PX_LINUX || PX_APPLE_FAMILY)
+#if !(PX_LINUX || PX_APPLE_FAMILY || PX_PS5)
 #error "This file should only be included by Unix builds!!"
 #endif
 
-#if PX_LINUX && !PX_CUDA_COMPILER && !PX_EMSCRIPTEN
+#if (PX_LINUX || PX_PS5) && !PX_CUDA_COMPILER && !PX_EMSCRIPTEN
     // Linux and CUDA compilation does not work with std::isfnite, as it is not marked as CUDA callable
     #include <cmath>
     #ifndef isfinite

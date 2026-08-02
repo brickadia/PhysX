@@ -69,7 +69,7 @@ int32_t Pxsscanf(const char* buffer, const char* format, ...)
 {
 	va_list arg;
 	va_start(arg, format);
-#if (PX_VC < 12) && !PX_LINUX
+#if PX_VC && (PX_VC < 12)
 	int32_t r = ::sscanf(buffer, format, arg);
 #else
 	int32_t r = ::vsscanf(buffer, format, arg);

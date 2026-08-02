@@ -68,6 +68,8 @@ class PxScopedPointer : private Alloc
 #elif PX_APPLE_FAMILY
 	#include <alloca.h>
 	#define PxAlloca(x) alloca(x)
+#elif PX_PS5
+	#define PxAlloca(x) __builtin_alloca(x)
 #elif PX_SWITCH
 	#include <malloc.h>
 	#define PxAlloca(x) alloca(x)

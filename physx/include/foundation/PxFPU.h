@@ -63,7 +63,7 @@ class PxSIMDGuard
 	PX_INLINE PxSIMDGuard(bool enable = true);  // set simd control word for PhysX
 	PX_INLINE ~PxSIMDGuard(); // restore simd control word
   private:
-#if !(PX_LINUX || PX_OSX) || (!PX_EMSCRIPTEN && PX_INTEL_FAMILY)
+#if !(PX_LINUX || PX_OSX || PX_PS5) || (!PX_EMSCRIPTEN && PX_INTEL_FAMILY)
   PxU32			mControlWord;
   bool			mEnabled;
 #endif
@@ -85,7 +85,7 @@ PX_FOUNDATION_API void PxDisableFPExceptions();
 
 #if PX_WINDOWS_FAMILY
 #include "foundation/windows/PxWindowsFPU.h"
-#elif (PX_LINUX && PX_SSE2) || PX_OSX
+#elif ((PX_LINUX || PX_PS5) && PX_SSE2) || PX_OSX
 #include "foundation/unix/PxUnixFPU.h"
 #else
 PX_INLINE physx::PxSIMDGuard::PxSIMDGuard(bool)

@@ -28,7 +28,7 @@ def filterPreset(presetPath):
         presetName = presetPath
     
     # Platform-specific filtering
-    winPresetFilter = ['win','switch','crosscompile']
+    winPresetFilter = ['win','switch','crosscompile','ps5']
     if sys.platform == 'win32':
         # On Windows, include presets that contain win, switch, or crosscompile 
         # (but not windows-crosscompile)
@@ -158,6 +158,8 @@ class CMakePreset:
         if self.targetPlatform == 'linux':
             return False
         elif self.targetPlatform == 'linuxAarch64':
+            return False
+        elif self.targetPlatform == 'ps5':
             return False
         elif self.compiler == 'x86_64-w64-mingw32-g++':
             return False
@@ -310,6 +312,13 @@ class CMakePreset:
                     outString = outString + ' -DCMAKE_C_COMPILER=clang'
                     outString = outString + ' -DCMAKE_CXX_COMPILER=clang++'
             
+            return outString
+        elif self.targetPlatform == 'ps5':
+            outString = outString + '-G \"Ninja\"'
+            outString = outString + ' -DTARGET_BUILD_PLATFORM=ps5'
+            outString = outString + ' -DPX_OUTPUT_ARCH=x86'
+            outString = outString + ' -DCMAKE_TOOLCHAIN_FILE=' + \
+                cmake_modules_root + '/ps5/PS5Toolchain.cmake'
             return outString
         elif self.targetPlatform == 'mac64':
             outString = outString + ' -DTARGET_BUILD_PLATFORM=mac'

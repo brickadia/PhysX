@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory)]
-    [ValidateSet('Win64', 'Linux')]
+    [ValidateSet('Win64', 'Linux', 'PS5')]
     [string]$Platform,
 
     [ValidateSet('All', 'Dynamic', 'Static')]
@@ -54,6 +54,16 @@ if ($Platform -eq 'Win64') {
     }
 
     $env:PM_MINGW_PATH = ''
+} elseif ($Platform -eq 'PS5') {
+    if (-not (Test-Path "$env:SCE_PROSPERO_SDK_DIR\host_tools\bin\prospero-clang.exe")) {
+        Write-Host 'Error: PS5 SDK (SCE_PROSPERO_SDK_DIR) is not installed.'
+        exit 1
+    }
+
+    if (-not (Get-Command ninja -ErrorAction SilentlyContinue)) {
+        Write-Host 'Error: Ninja is not installed. Run Scripts\Setup\Install Ninja.bat.'
+        exit 1
+    }
 }
 
 # Resolve presets
@@ -71,6 +81,9 @@ $Presets = switch ($Platform) {
     }
     'Linux' {
         @('linux-crosscompile-brickadia-ninja', 'linux-crosscompile-brickadia-lto-ninja')
+    }
+    'PS5' {
+        @('ps5-brickadia-ninja', 'ps5-brickadia-lto-ninja')
     }
 }
 
