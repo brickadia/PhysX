@@ -57,6 +57,9 @@ namespace physx
 		PxU32 internalFilterBits;
 	};
 
+	/** internalFilterBits sentinel marking simulation trigger overlap tests; custom geometries map it to their trigger-detection channel. */
+	static const PxU32 PX_SIM_TRIGGER_INTERNAL_FILTER_BITS = 0xFFFFFFFFu;
+
 	/**
 	\brief A per-thread context passed to low-level raycast functions.
 	*/

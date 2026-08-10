@@ -553,9 +553,10 @@ static bool findTriggerContacts(TriggerInteraction* tri, bool toBeDeleted, bool 
 		const PxTransform& globalPose1 = transformCache.getTransformCache(elementID1).transform;
 
 		PX_ASSERT(overlapFunc);
+		static PxOverlapThreadContext triggerOverlapThreadContext = { PX_SIM_TRIGGER_INTERNAL_FILTER_BITS };
 		overlap = overlapFunc(	primitive0->getCore().getGeometry(), globalPose0,
 								primitive1->getCore().getGeometry(), globalPose1,
-								&tri->getTriggerCache(), UNUSED_OVERLAP_THREAD_CONTEXT);
+								&tri->getTriggerCache(), &triggerOverlapThreadContext);
 	}
 
 	const bool hadOverlap = tri->lastFrameHadContacts();
