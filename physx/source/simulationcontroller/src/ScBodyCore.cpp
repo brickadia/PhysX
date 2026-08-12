@@ -124,9 +124,10 @@ void Sc::BodyCore::restoreDynamicData()
 
 void Sc::BodyCore::setBody2World(const PxTransform& p)
 {
-	mCore.body2World = p;
 	PX_ASSERT(p.p.isFinite());
 	PX_ASSERT(p.q.isFinite());
+	PX_ASSERT(PxAbs(p.q.magnitudeSquared() - 1.0f) < 1e-4f);
+	mCore.body2World = p;
 
 	BodySim* sim = getSim();
 	if(sim)
@@ -140,6 +141,7 @@ void Sc::BodyCore::setDeferredBody2World(const PxTransform& p)
 {
 	PX_ASSERT(p.p.isFinite());
 	PX_ASSERT(p.q.isFinite());
+	PX_ASSERT(PxAbs(p.q.magnitudeSquared() - 1.0f) < 1e-4f);
 	PX_ASSERT(!(mCore.mFlags & PxRigidBodyFlag::eKINEMATIC));
 
 	// Queue only; the pose is written at the end of the next step in Scene::applyDeferredPoses(). Waking (if
@@ -151,11 +153,15 @@ void Sc::BodyCore::setDeferredBody2World(const PxTransform& p)
 
 void Sc::BodyCore::setCMassLocalPose(const PxTransform& newBody2Actor)
 {
+	PX_ASSERT(PxAbs(mCore.body2World.q.magnitudeSquared() - 1.0f) < 1e-4f);
+	PX_ASSERT(PxAbs(mCore.getBody2Actor().q.magnitudeSquared() - 1.0f) < 1e-4f);
+	PX_ASSERT(PxAbs(newBody2Actor.q.magnitudeSquared() - 1.0f) < 1e-4f);
 	const PxTransform oldActor2World = mCore.body2World * mCore.getBody2Actor().getInverse();
-	const PxTransform newBody2World = oldActor2World * newBody2Actor;
+	const PxTransform newBody2World = (oldActor2World * newBody2Actor).getNormalized();
 
 	PX_ASSERT(newBody2World.p.isFinite());
 	PX_ASSERT(newBody2World.q.isFinite());
+	PX_ASSERT(PxAbs(newBody2World.q.magnitudeSquared() - 1.0f) < 1e-4f);
 	mCore.body2World = newBody2World;
 
 	setBody2Actor(newBody2Actor);
@@ -192,6 +198,7 @@ void Sc::BodyCore::setBody2Actor(const PxTransform& p)
 {
 	PX_ASSERT(p.p.isFinite());
 	PX_ASSERT(p.q.isFinite());
+	PX_ASSERT(PxAbs(p.q.magnitudeSquared() - 1.0f) < 1e-4f);
 
 	mCore.setBody2Actor(p);
 
@@ -638,6 +645,7 @@ bool Sc::BodyCore::getHasValidKinematicTarget() const
 void Sc::BodyCore::setKinematicTarget(const PxTransform& p, PxReal wakeCounter)
 {
 	PX_ASSERT(mCore.mFlags & PxRigidBodyFlag::eKINEMATIC);
+	PX_ASSERT(PxAbs(p.q.magnitudeSquared() - 1.0f) < 1e-4f);
 	Sc::BodySim* sim = getSim();
 	PX_ASSERT(sim);
 	sim->setKinematicTarget(p);
