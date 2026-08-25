@@ -32,7 +32,7 @@
 using namespace physx;
 
 PxcNpThreadContext::PxcNpThreadContext(PxcNpContext* params) : 
-	mRenderOutput						(params->mRenderBuffer),
+	mRenderOutput						(mRenderBuffer),
 	mContactBlockStream					(params->mNpMemBlockPool),
 	mNpCacheStreamPair					(params->mNpMemBlockPool),
 	mNarrowPhaseParams					(0.0f, params->mMeshContactMargin, params->mToleranceLength),

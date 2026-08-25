@@ -43,6 +43,7 @@ The reason for this is GJK support cannot be evaluated near infinity. A viable a
 #include "geometry/PxGeometryHit.h"
 #include "geometry/PxGeometryQueryFlags.h"
 #include "geometry/PxGeometryQueryContext.h"
+#include "geometry/PxConvexMeshGeometry.h"
 
 #if !PX_DOXYGEN
 namespace physx
@@ -244,6 +245,15 @@ public:
 	*/
 	PX_PHYSX_COMMON_API static bool isValid(const PxGeometry& geom);
 };
+
+/**
+\brief Compute the PCM contact margin for a convex mesh geometry.
+Used by custom geometry callbacks to compute the breaking threshold for persistent contact manifolds.
+\param[in] convexGeom  The convex mesh geometry.
+\param[in] toleranceLength  The tolerance length from the scene.
+\return The PCM margin value.
+*/
+PX_PHYSX_COMMON_API PxReal PxComputePCMConvexMargin(const PxConvexMeshGeometry& convexGeom, PxReal toleranceLength);
 
 #if !PX_DOXYGEN
 }

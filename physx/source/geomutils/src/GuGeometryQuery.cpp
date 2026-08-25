@@ -554,3 +554,16 @@ PxU32 PxCustomGeometry::getUniqueID()
     PxAtomicIncrement(reinterpret_cast<volatile PxI32*>(&uniqueID));
     return uniqueID;
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+PxReal physx::PxComputePCMConvexMargin(const PxConvexMeshGeometry& convexGeom, PxReal toleranceLength)
+{
+	using namespace aos;
+	const ConvexHullData* hullData = _getHullData(convexGeom);
+	const Vec3V vScale = V3LoadU_SafeReadW(convexGeom.scale.scale);
+	const FloatV margin = CalculatePCMConvexMargin(hullData, vScale, toleranceLength);
+	PxReal result;
+	FStore(margin, &result);
+	return result;
+}

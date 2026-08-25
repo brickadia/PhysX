@@ -47,7 +47,7 @@ namespace physx
 #define GU_SINGLE_MANIFOLD_CACHE_SIZE 6
 #define GU_SPHERE_MANIFOLD_CACHE_SIZE 1
 #define GU_CAPSULE_MANIFOLD_CACHE_SIZE 3
-#define GU_MAX_MANIFOLD_SIZE 6	// PT: max nb of manifolds (e.g. for multi-manifolds), NOT the max size of a single manifold
+#define GU_MAX_MANIFOLD_SIZE 16	// PT: max nb of manifolds (e.g. for multi-manifolds), NOT the max size of a single manifold. BR: raised from 6, coplanar patch splitting needs more slots
 #define GU_MESH_CONTACT_REDUCTION_THRESHOLD	16
 
 #define GU_MANIFOLD_INVALID_INDEX	0xffffffff

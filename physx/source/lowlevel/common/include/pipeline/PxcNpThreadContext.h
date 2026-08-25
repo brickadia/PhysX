@@ -137,7 +137,8 @@ public:
 	PX_FORCE_INLINE PxBitMap&					getLocalChangeTouch()							{ return mLocalChangeTouch;					}
 
 					void						reset(PxU32 cmCount);
-	// debugging
+	// debugging; per-thread buffer drained by mergeCMDiscreteUpdateResults
+					Cm::RenderBuffer			mRenderBuffer;
 					PxRenderOutput 				mRenderOutput;
 
 	// dsequeira: Need to think about this block pool allocation a bit more. Ideally we'd be 

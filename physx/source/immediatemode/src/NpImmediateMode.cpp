@@ -883,7 +883,7 @@ void immediate::PxGenerateContactsFast(const PxGeometry& geom0, const PxGeometry
 }
 
 void immediate::PxGenerateContactsFastPCM(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1, PxCache& contactCache, PxContactBuffer& contactBuffer,
-	PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength)
+	PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength, PxRenderOutput* renderOutput)
 {
 	contactBuffer.count = 0;
 	PxGeometryType::Enum type0 = geom0.getType();
@@ -897,7 +897,30 @@ void immediate::PxGenerateContactsFastPCM(const PxGeometry& geom0, const PxGeome
 	Gu::Cache& cache = static_cast<Gu::Cache&>(contactCache);
 
 	Gu::NarrowPhaseParams params(contactDistance, meshContactMargin, toleranceLength);
-	g_PCMContactMethodTable[type0][type1](tempGeom0, tempGeom1, pose0, pose1, params, cache, contactBuffer, NULL);
+	g_PCMContactMethodTable[type0][type1](tempGeom0, tempGeom1, pose0, pose1, params, cache, contactBuffer, renderOutput);
+}
+
+void immediate::PxInitTemporaryPCMCache(PxCache& cache, void* storage, PxGeometryType::Enum type0, PxGeometryType::Enum type1)
+{
+	PX_ASSERT((reinterpret_cast<uintptr_t>(storage) & 0xf) == 0);
+
+	cache.mCachedData = NULL;
+	cache.mCachedSize = 0;
+	cache.mManifoldFlags = 0;
+	cache.mPairData = 0;
+
+	if(type0 == PxGeometryType::eSPHERE || type1 == PxGeometryType::eSPHERE)
+	{
+		Gu::SpherePersistentContactManifold* manifold = PX_PLACEMENT_NEW(storage, Gu::SpherePersistentContactManifold());
+		static_cast<Gu::Cache&>(cache).setManifold(manifold);
+	}
+	else
+	{
+		Gu::LargePersistentContactManifold* manifold = PX_PLACEMENT_NEW(storage, Gu::LargePersistentContactManifold());
+		static_cast<Gu::Cache&>(cache).setManifold(manifold);
+	}
+
+	static_cast<Gu::Cache&>(cache).getManifold().clearManifold();
 }
 
 immArticulation::immArticulation(const PxArticulationDataRC& data) :

@@ -474,7 +474,7 @@ namespace
 			{
 			}
 
-			virtual bool usePersistentContactManifold(const PxGeometry&, PxReal&) const
+			virtual bool usePersistentContactManifold(const PxGeometry&, const PxGeometry&, PxReal, PxReal&) const
 			{
 				return false;
 			}

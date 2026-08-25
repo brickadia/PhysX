@@ -40,6 +40,7 @@
 #if !PX_DOXYGEN
 namespace physx
 {
+	struct PxContactPoint;
 #endif
 	struct PxCache;
 	class PxContactBuffer;
@@ -128,10 +129,11 @@ namespace physx
 
 			\param[in] geom0 This custom geometry
 			\param[in] geom1 The other geometry
+			\param[out] pairData Opaque pair data preserved in the contact cache and passed to multi-manifold generation.
 
 			\return True if multi manifold is needed.
 			*/
-			virtual bool needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1) const = 0;
+			virtual bool needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1, PxU8& pairData) const = 0;
 
 			/**
 			\brief Contacts generation. Generate collision contacts between two geometries in given poses.
@@ -226,15 +228,63 @@ namespace physx
 			/**
 			\brief Compatible with PhysX's PCM feature. Allows to optimize contact generation.
 
-			\param[in] geometry				This geometry.
+			\param[in] geom0				This custom geometry.
+			\param[in] geom1				The other geometry in the pair.
+			\param[in] toleranceLength		Scene-level tolerance length scale.
 			\param[out] breakingThreshold	The threshold to trigger contacts re-generation.
 			*/
-			virtual bool usePersistentContactManifold(const PxGeometry& geometry, PxReal& breakingThreshold) const = 0;
+			virtual bool usePersistentContactManifold(const PxGeometry& geom0, const PxGeometry& geom1, PxReal toleranceLength, PxReal& breakingThreshold) const = 0;
 
 			/**
 			\brief Extract proxy geometry for a query hit.
 			*/
 			virtual void extractQueryGeometry(PxLocationHit& hit, PxGeometryHolder& outGeometry, PxTransform& outLocalPose) const = 0;
+
+			/**
+			\brief Receiver interface for incremental contact reporting during multi-manifold contact generation.
+			Implemented by PhysX internally. Custom geometry calls reportContacts() per sub-shape during spatial traversal.
+			*/
+			struct ContactReceiver
+			{
+				/**
+				\brief Report a batch of contacts sharing a common patch normal.
+				\param[in] contacts     Array of contact points.
+				\param[in] numContacts  Number of contacts in the array.
+				\param[in] patchNormal  The surface normal for this group of contacts (world space).
+				\return False to signal the receiver is full (stop traversal). True to continue.
+				*/
+				virtual bool reportContacts(const PxContactPoint* contacts, PxU32 numContacts, const PxVec3& patchNormal) = 0;
+				virtual ~ContactReceiver() {}
+			};
+
+			/**
+			\brief Multi-manifold contact generation. Called instead of generateContacts when
+			usePersistentContactManifold returns true and the cache is multi-manifold.
+			The implementation should iterate its internal geometry and report contacts per sub-shape
+			via the receiver. PhysX handles manifold management, temporal coherence, and contact reduction.
+			Default implementation returns false, which triggers a fallback to generateContacts.
+
+			\param[in] geom0           This custom geometry
+			\param[in] geom1           The other geometry
+			\param[in] pose0           This custom geometry pose
+			\param[in] pose1           The other geometry pose
+			\param[in] contactDistance  Contact generation distance
+			\param[in] meshContactMargin   Mesh contact margin
+			\param[in] toleranceLength Tolerance length for scaling
+			\param[in,out] receiver    Contact receiver to report contacts to
+			\param[in] pairData        Opaque value produced by needsMultiManifold when the pair cache was created
+			\return True if contacts were reported via the receiver. False to fall back to generateContacts.
+			*/
+			virtual bool generateContactsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1,
+				const PxTransform32& pose0, const PxTransform32& pose1,
+				PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength,
+				ContactReceiver& receiver, PxRenderOutput* renderOutput, PxU8 pairData) const
+			{
+				PX_UNUSED(geom0); PX_UNUSED(geom1); PX_UNUSED(pose0); PX_UNUSED(pose1);
+				PX_UNUSED(contactDistance); PX_UNUSED(meshContactMargin); PX_UNUSED(toleranceLength);
+				PX_UNUSED(receiver); PX_UNUSED(renderOutput); PX_UNUSED(pairData);
+				return false;
+			}
 
 			/* Destructor */
 			virtual ~Callbacks() {}

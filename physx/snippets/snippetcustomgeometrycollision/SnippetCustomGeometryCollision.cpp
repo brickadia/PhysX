@@ -149,7 +149,7 @@ struct CheckerBoard : PxCustomGeometry::Callbacks
 	}
 	virtual void visualize(const PxGeometry&, PxRenderOutput&, const PxTransform&, const PxBounds3&) const {}
 	virtual void computeMassProperties(const physx::PxGeometry&, physx::PxMassProperties&) const {}
-	virtual bool usePersistentContactManifold(const PxGeometry&, PxReal&) const { return false; }
+	virtual bool usePersistentContactManifold(const PxGeometry&, const PxGeometry&, PxReal, PxReal&) const { return false; }
 };
 
 IMPLEMENT_CUSTOM_GEOMETRY_TYPE(CheckerBoard)

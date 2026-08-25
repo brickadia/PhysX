@@ -56,7 +56,7 @@ public:
 
 		// override PxCustomGeometry::Callbacks
 		virtual PxBounds3 getLocalBounds(const PxGeometry& geometry) const;
-		virtual bool needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1) const override;
+		virtual bool needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1, PxU8& pairData) const override;
 		virtual bool generateContacts(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1,
 			const PxReal contactDistance, const PxReal meshContactMargin, const PxReal toleranceLength,
 			PxCache& cache, PxContactBuffer& contactBuffer, PxRenderOutput* renderOutput) const;
@@ -66,7 +66,7 @@ public:
 		virtual bool sweep(const PxVec3& unitDir, const PxReal maxDist,
 			const PxGeometry& geom0, const PxTransform& pose0, const PxGeometry& geom1, const PxTransform& pose1,
 			PxGeomSweepHit& sweepHit, PxHitFlags hitFlags, const PxReal inflation, PxSweepThreadContext*) const;
-		virtual bool usePersistentContactManifold(const PxGeometry& geometry, PxReal& breakingThreshold) const;
+		virtual bool usePersistentContactManifold(const PxGeometry&, const PxGeometry&, PxReal, PxReal& breakingThreshold) const;
 
 		// override PxGjkQuery::Support
 		virtual PxReal getMargin() const { return margin; }

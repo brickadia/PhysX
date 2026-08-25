@@ -182,10 +182,11 @@ PxBounds3 PxCustomGeometryExt::BaseConvexCallbacks::getLocalBounds(const PxGeome
 	return bounds;
 }
 
-bool PxCustomGeometryExt::BaseConvexCallbacks::needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1) const
+bool PxCustomGeometryExt::BaseConvexCallbacks::needsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1, PxU8& pairData) const
 {
 	PX_UNUSED(geom0);
 	PX_UNUSED(geom1);
+	pairData = 0;
 
 	return false;
 }
@@ -514,7 +515,7 @@ bool PxCustomGeometryExt::BaseConvexCallbacks::sweep(const PxVec3& unitDir, cons
 	return false;
 }
 
-bool PxCustomGeometryExt::BaseConvexCallbacks::usePersistentContactManifold(const PxGeometry& /*geometry*/, PxReal& breakingThreshold) const
+bool PxCustomGeometryExt::BaseConvexCallbacks::usePersistentContactManifold(const PxGeometry& /*geom0*/, const PxGeometry& /*geom1*/, PxReal /*toleranceLength*/, PxReal& breakingThreshold) const
 {
 	// Even if we don't use persistent manifold, we still need to set proper breakingThreshold
 	// because the other geometry still can force the PCM usage. FLT_EPSILON ensures that
