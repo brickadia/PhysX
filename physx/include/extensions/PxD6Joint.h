@@ -196,7 +196,8 @@ struct PxD6JointDriveFlag
 
 		\see PxConstraint::getForce()
 		*/
-		eOUTPUT_FORCE	= (1 << 1)
+		eOUTPUT_FORCE	= (1 << 1),
+		eTARGET_FRAME	= (1 << 2)	//!< evaluate swing/twist error in the target frame so free target-relative twist does not alter swing
 	};
 };
 typedef PxFlags<PxD6JointDriveFlag::Enum, PxU32> PxD6JointDriveFlags;

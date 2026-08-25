@@ -1167,6 +1167,7 @@ template<> struct PxEnumTraits< physx::PxSphericalJointFlag::Enum > { PxEnumTrai
 	static PxU32ToName g_physx__PxD6JointDriveFlag__EnumConversion[] = {
 		{ "eACCELERATION", static_cast<PxU32>( physx::PxD6JointDriveFlag::eACCELERATION ) },
 		{ "eOUTPUT_FORCE", static_cast<PxU32>( physx::PxD6JointDriveFlag::eOUTPUT_FORCE ) },
+		{ "eTARGET_FRAME", static_cast<PxU32>( physx::PxD6JointDriveFlag::eTARGET_FRAME ) },
 		{ NULL, 0 }
 	};
 

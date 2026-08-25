@@ -591,9 +591,11 @@ static __device__ PxU32 D6JointSolverPrep(Px1DConstraint* constraints, const Pxg
 		else 
 		{
 			const PxVec3& v = data.driveAngularVelocity;
-
-			// see documentation of CPU version in ExtD6Joint.cpp
-			const PxQuat delta = cB2cA.q * d2cA_q.getConjugate();
+			const bool useTargetFrame =
+				((driving & (1 << PxgD6Drive::eTWIST)) && (drives[gDriveTwistDataIndex].flags & PxgD6JointDriveFlag::eTARGET_FRAME)) ||
+				((driving & (1 << PxgD6Drive::eSWING1)) && (drives[gDriveSwing1DataIndex].flags & PxgD6JointDriveFlag::eTARGET_FRAME)) ||
+				((driving & (1 << PxgD6Drive::eSWING2)) && (drives[gDriveSwing2DataIndex].flags & PxgD6JointDriveFlag::eTARGET_FRAME));
+			const PxQuat delta = useTargetFrame ? d2cA_q.getConjugate() * cB2cA.q : cB2cA.q * d2cA_q.getConjugate();
 
 			if(driving & (1 << PxgD6Drive::eTWIST))
 			{

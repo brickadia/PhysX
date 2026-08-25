@@ -1048,23 +1048,11 @@ static PxU32 D6JointSolverPrep(Px1DConstraint* constraints,
 		else 
 		{
 			const PxVec3& v = data.driveAngularVelocity;
-
-			//
-			// to get the delta to the drive target orientation (and as such the error to resolve),
-			// the relative orientation of joint frame B with respect to the drive target frame is computed:
-			// 
-			// deltaD = d2cA_q.getConjugate() * cB2cA.q = cB2d
-			// 
-			// This orientation is relative to the drive target frame, however, the reference frame to
-			// resolve the errors in is joint frame A. The rotation deltaD thus needs to get mapped to
-			// joint frame A. To translate a rotation R in frame M to another frame P, the transform from
-			// M to P (M2P) can be used as follows: M2P * R * M2P^T. In our case this means:
-			// 
-			// deltaA = d2cA_q * deltaD * d2cA_q.getConjugate()
-			//        = d2cA_q * d2cA_q.getConjugate() * cB2cA.q * d2cA_q.getConjugate()
-			//        = cB2cA.q * d2cA_q.getConjugate()
-			//
-			const PxQuat delta = cB2cA.q * d2cA_q.getConjugate();
+			const bool useTargetFrame =
+				((driving & (1 << PxD6Drive::eTWIST)) && (drives[gDriveTwistDataIndex].flags & PxD6JointDriveFlag::eTARGET_FRAME)) ||
+				((driving & (1 << PxD6Drive::eSWING1)) && (drives[gDriveSwing1DataIndex].flags & PxD6JointDriveFlag::eTARGET_FRAME)) ||
+				((driving & (1 << PxD6Drive::eSWING2)) && (drives[gDriveSwing2DataIndex].flags & PxD6JointDriveFlag::eTARGET_FRAME));
+			const PxQuat delta = useTargetFrame ? d2cA_q.getConjugate() * cB2cA.q : cB2cA.q * d2cA_q.getConjugate();
 
 			if(driving & (1<<PxD6Drive::eTWIST))
 			{

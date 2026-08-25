@@ -85,7 +85,8 @@ namespace physx
 			//            to the PhysXExtensions library only)
 
 			eACCELERATION	= (1 << 0),	//!< drive spring is for the acceleration at the joint (rather than the force) 
-			eOUTPUT_FORCE	= (1 << 1)	// see PxD6JointDriveFlag::eOUTPUT_FORCE
+			eOUTPUT_FORCE	= (1 << 1),	// see PxD6JointDriveFlag::eOUTPUT_FORCE
+			eTARGET_FRAME	= (1 << 2)	// see PxD6JointDriveFlag::eTARGET_FRAME
 		};
 	};
 	typedef PxFlags<PxgD6JointDriveFlag::Enum, PxU32> PxgD6JointDriveFlags;
