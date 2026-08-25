@@ -277,7 +277,7 @@ namespace immediate
 	PX_C_EXPORT PX_PHYSX_CORE_API void PxGenerateContactsFastPCM(const PxGeometry& geom0, const PxGeometry& geom1, const PxTransform32& pose0, const PxTransform32& pose1,
 															PxCache& contactCache, PxContactBuffer& contactBuffer,
 															PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength,
-															PxRenderOutput* renderOutput);
+															PxRenderOutput* renderOutput, bool lowFidelity = false);
 
 	/** Storage size for a temporary PCM cache manifold. Sufficient for all geometry pair types. Must be 16-byte aligned. */
 	#define PX_TEMP_PCM_CACHE_STORAGE_SIZE 512

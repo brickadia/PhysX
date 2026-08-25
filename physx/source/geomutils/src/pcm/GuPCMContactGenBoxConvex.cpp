@@ -38,6 +38,7 @@
 #include "common/PxRenderOutput.h"
 
 #define PCM_USE_INTERNAL_OBJECT 1
+#define PCM_GRAZING_CONTACT_FILTER 1
 
 using namespace physx;
 using namespace Gu;
@@ -53,8 +54,8 @@ using namespace aos;
 //  |/     |/      |/		6 = +++
 // 0+------+1      *---x	7 = -++
 
-static bool testFaceNormal(const PolygonalData& polyData0, const PolygonalData& polyData1, const SupportLocal* map0, const SupportLocal* map1, const PxMatTransformV& transform0To1, const PxMatTransformV& transform1To0, const FloatVArg contactDist, 
-	FloatV& minOverlap, PxU32& feature, Vec3V& faceNormal, FeatureStatus faceStatus, FeatureStatus& status)
+static bool testFaceNormal(const PolygonalData& polyData0, const PolygonalData& polyData1, const SupportLocal* map0, const SupportLocal* map1, const PxMatTransformV& transform0To1, const PxMatTransformV& transform1To0, const FloatVArg contactDist,
+	FloatV& minOverlap, PxU32& feature, Vec3V& faceNormal, FeatureStatus faceStatus, FeatureStatus& status, float* PX_RESTRICT outOverlaps = nullptr)
 {
 	PX_UNUSED(polyData1);
 		
@@ -120,7 +121,15 @@ static bool testFaceNormal(const PolygonalData& polyData0, const PolygonalData& 
 		//Internal object overlaps more than current min, so can skip it
 		//because (a) it isn't a separating axis and (b) it isn't the smallest axis
 		if(FAllGrtr(_tempOverlap, _minOverlap))
+		{
+			if(outOverlaps)
+			{
+				float tempF;
+				FStore(_tempOverlap, &tempF);
+				outOverlaps[i] = tempF;
+			}
 			continue;
+		}
 #endif
 		const FloatV translate = V3Dot(center1To0, n0);
 		map1->doSupport(n1, min1, max1);
@@ -134,6 +143,13 @@ static bool testFaceNormal(const PolygonalData& polyData0, const PolygonalData& 
 			return false;
 
 		const FloatV tempOverlap = FSub(max0, min1);
+
+		if(outOverlaps)
+		{
+			float tempF;
+			FStore(tempOverlap, &tempF);
+			outOverlaps[i] = tempF;
+		}
 
 		if(FAllGrtr(_minOverlap, tempOverlap))
 		{
@@ -530,28 +546,95 @@ static void generatedContacts(const PolygonalData& polyData0, const PolygonalDat
 }
 
 bool Gu::generateFullContactManifold(const PolygonalData& polyData0, const PolygonalData& polyData1, const SupportLocal* map0, const SupportLocal* map1, PersistentContact* manifoldContacts, PxU32& numContacts,
-	const FloatVArg contactDist, const Vec3VArg normal, const Vec3VArg closestA, const Vec3VArg closestB, PxReal marginA, PxReal marginB, bool doOverlapTest, 
-	PxRenderOutput* renderOutput, PxReal toleranceLength)
+	const FloatVArg contactDist, const Vec3VArg normal, const Vec3VArg closestA, const Vec3VArg closestB, PxReal marginA, PxReal marginB, bool doOverlapTest,
+	PxRenderOutput* renderOutput, PxReal toleranceLength, bool* outGrazingSuspect)
 {
 	const PxMatTransformV transform1To0V = map0->transform.transformInv(map1->transform);
 	const PxMatTransformV transform0To1V = map1->transform.transformInv(map0->transform);
-	
+
+	bool bGrazingSuspect = false;
+
 	if(doOverlapTest)
 	{
 		//if gjk fail, SAT based yes/no test
 		FeatureStatus status = POLYDATA0;
 		FloatV minOverlap = FMax();
 		Vec3V minNormal = V3Zero();
-	
+
+		// ConvexHullData::mNbPolygons is PxU8, so 256 bounds any cooked hull.
+		float overlaps0[256];
+		float overlaps1[256];
+
 		PxU32 feature0;
 		//in the local space of polyData0, minNormal is in polyData0 space
-		if(!testFaceNormal(polyData0, polyData1, map0, map1, transform0To1V, transform1To0V, contactDist, minOverlap, feature0, minNormal, POLYDATA0, status))
+		if(!testFaceNormal(polyData0, polyData1, map0, map1, transform0To1V, transform1To0V, contactDist, minOverlap, feature0, minNormal, POLYDATA0, status, overlaps0))
 			return false;
-			
+
 		PxU32 feature1;
 		//in the local space of polyData1, if minOverlap is overwrite inside this function, minNormal will be in polyData1 space
-		if(!testFaceNormal(polyData1, polyData0, map1, map0, transform1To0V, transform0To1V, contactDist, minOverlap, feature1, minNormal, POLYDATA1, status))
+		if(!testFaceNormal(polyData1, polyData0, map1, map0, transform1To0V, transform0To1V, contactDist, minOverlap, feature1, minNormal, POLYDATA1, status, overlaps1))
 			return false;
+
+#if PCM_GRAZING_CONTACT_FILTER
+		// Grazing contact filter: check if any non-winning face axis has overlap
+		// below threshold. If so, this is a seam/edge grazing contact.
+		if(outGrazingSuspect)
+		{
+			float contactDistF;
+			FStore(contactDist, &contactDistF);
+
+			const PxVec3& ie0 = polyData0.mInternal.mInternalExtents;
+			const PxVec3& ie1 = polyData1.mInternal.mInternalExtents;
+			const float minSideLength = PxMin(
+				PxMin(ie0.x, PxMin(ie0.y, ie0.z)),
+				PxMin(ie1.x, PxMin(ie1.y, ie1.z))) * 2.0f;
+			const float grazingThreshold = PxMin(contactDistF * 0.4f, minSideLength * 0.4f);
+
+			// Transform winning normal into polyData0's shape space for comparison.
+			// minNormal is in polyData0 space if status==POLYDATA0, polyData1 space if POLYDATA1.
+			const Vec3V winNormalIn0 = (status == POLYDATA0)
+				? minNormal
+				: transform1To0V.rotate(minNormal);
+
+			const Vec3V winNormalIn1 = (status == POLYDATA1)
+				? minNormal
+				: transform0To1V.rotate(minNormal);
+
+			bool isGrazing = false;
+
+			// Check polyData0 face overlaps (normals are in polyData0 shape space)
+			for(PxU32 i = 0; i < polyData0.mNbPolygons && !isGrazing; ++i)
+			{
+				if(status == POLYDATA0 && i == feature0)
+					continue;
+
+				const Vec3V shapeNormal = V3Normalize(M33TrnspsMulV3(map0->shape2Vertex, V3LoadU(polyData0.mPolygons[i].mPlane.n)));
+
+				if(FAllGrtr(FAbs(V3Dot(shapeNormal, winNormalIn0)), FLoad(0.940f)))
+					continue;
+
+				if(overlaps0[i] < grazingThreshold)
+					isGrazing = true;
+			}
+
+			// Check polyData1 face overlaps (normals are in polyData1 shape space)
+			for(PxU32 i = 0; i < polyData1.mNbPolygons && !isGrazing; ++i)
+			{
+				if(status == POLYDATA1 && i == feature1)
+					continue;
+
+				const Vec3V shapeNormal = V3Normalize(M33TrnspsMulV3(map1->shape2Vertex, V3LoadU(polyData1.mPolygons[i].mPlane.n)));
+
+				if(FAllGrtr(FAbs(V3Dot(shapeNormal, winNormalIn1)), FLoad(0.940f)))
+					continue;
+
+				if(overlaps1[i] < grazingThreshold)
+					isGrazing = true;
+			}
+
+			bGrazingSuspect = isGrazing;
+		}
+#endif
 
 		bool doEdgeTest = false;
 			
@@ -659,8 +742,72 @@ EdgeTest:
 				}
 			}
 		}
+
+#if PCM_GRAZING_CONTACT_FILTER
+		// Runs after generation and only for small manifolds so resting face contacts skip the SAT rerun.
+		if(outGrazingSuspect && numContacts <= 4)
+		{
+			float contactDistF;
+			FStore(contactDist, &contactDistF);
+
+			const PxVec3& ie0 = polyData0.mInternal.mInternalExtents;
+			const PxVec3& ie1 = polyData1.mInternal.mInternalExtents;
+			const float minSideLength = PxMin(
+				PxMin(ie0.x, PxMin(ie0.y, ie0.z)),
+				PxMin(ie1.x, PxMin(ie1.y, ie1.z))) * 2.0f;
+			const float grazingThreshold = PxMin(contactDistF * 0.4f, minSideLength * 0.4f);
+
+			FeatureStatus grazingStatus = POLYDATA0;
+			FloatV grazingMinOverlap = FMax();
+			Vec3V grazingMinNormal = V3Zero();
+
+			float grazingOverlaps0[256];
+			float grazingOverlaps1[256];
+
+			PxU32 grazingFeature0;
+			PxU32 grazingFeature1;
+			const bool overlapsValid =
+				testFaceNormal(polyData0, polyData1, map0, map1, transform0To1V, transform1To0V, contactDist, grazingMinOverlap, grazingFeature0, grazingMinNormal, POLYDATA0, grazingStatus, grazingOverlaps0)
+				&& testFaceNormal(polyData1, polyData0, map1, map0, transform1To0V, transform0To1V, contactDist, grazingMinOverlap, grazingFeature1, grazingMinNormal, POLYDATA1, grazingStatus, grazingOverlaps1);
+
+			if(overlapsValid)
+			{
+				// GJK normal is in polyData1's local space.
+				const Vec3V gjkNormalIn0 = transform0To1V.rotateInv(normal);
+				const Vec3V& gjkNormalIn1 = normal;
+
+				bool isGrazing = false;
+
+				for(PxU32 i = 0; i < polyData0.mNbPolygons && !isGrazing; ++i)
+				{
+					const Vec3V shapeNormal = V3Normalize(M33TrnspsMulV3(map0->shape2Vertex, V3LoadU(polyData0.mPolygons[i].mPlane.n)));
+					if(FAllGrtr(FAbs(V3Dot(shapeNormal, gjkNormalIn0)), FLoad(0.940f)))
+						continue;
+
+					if(grazingOverlaps0[i] < grazingThreshold)
+						isGrazing = true;
+				}
+
+				for(PxU32 i = 0; i < polyData1.mNbPolygons && !isGrazing; ++i)
+				{
+					const Vec3V shapeNormal = V3Normalize(M33TrnspsMulV3(map1->shape2Vertex, V3LoadU(polyData1.mPolygons[i].mPlane.n)));
+					if(FAllGrtr(FAbs(V3Dot(shapeNormal, gjkNormalIn1)), FLoad(0.940f)))
+						continue;
+
+					if(grazingOverlaps1[i] < grazingThreshold)
+						isGrazing = true;
+				}
+
+				bGrazingSuspect = isGrazing;
+			}
+		}
+#endif
 	}
-	
+
+	// Detection only flags; classification/correction happens in the brick compound layer.
+	if(outGrazingSuspect)
+		*outGrazingSuspect = bGrazingSuspect;
+
 	return true;
 }
 

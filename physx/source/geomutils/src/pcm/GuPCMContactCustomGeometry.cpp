@@ -606,7 +606,7 @@ static bool pcmContactCustomGeometryGeometry(GU_CONTACT_METHOD_ARGS)
 			customGeom.callbacks->generateContactsMultiManifold(
 				customGeom, otherGeom, transform0, transform1,
 				params.mContactDistance, params.mMeshContactMargin, params.mToleranceLength,
-				receiver, renderOutput, cache.mPairData);
+				receiver, renderOutput, cache.mPairData, contactBuffer.lowFidelity);
 
 			receiver.processContacts(GU_SINGLE_MANIFOLD_CACHE_SIZE, false);
 		}

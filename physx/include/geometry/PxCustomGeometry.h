@@ -273,16 +273,17 @@ namespace physx
 			\param[in] toleranceLength Tolerance length for scaling
 			\param[in,out] receiver    Contact receiver to report contacts to
 			\param[in] pairData        Opaque value produced by needsMultiManifold when the pair cache was created
+			\param[in] lowFidelity     Pair involves a PxShapeFlag::eLOW_FIDELITY_CONTACTS shape; skip optional contact-quality work
 			\return True if contacts were reported via the receiver. False to fall back to generateContacts.
 			*/
 			virtual bool generateContactsMultiManifold(const PxGeometry& geom0, const PxGeometry& geom1,
 				const PxTransform32& pose0, const PxTransform32& pose1,
 				PxReal contactDistance, PxReal meshContactMargin, PxReal toleranceLength,
-				ContactReceiver& receiver, PxRenderOutput* renderOutput, PxU8 pairData) const
+				ContactReceiver& receiver, PxRenderOutput* renderOutput, PxU8 pairData, bool lowFidelity) const
 			{
 				PX_UNUSED(geom0); PX_UNUSED(geom1); PX_UNUSED(pose0); PX_UNUSED(pose1);
 				PX_UNUSED(contactDistance); PX_UNUSED(meshContactMargin); PX_UNUSED(toleranceLength);
-				PX_UNUSED(receiver); PX_UNUSED(renderOutput); PX_UNUSED(pairData);
+				PX_UNUSED(receiver); PX_UNUSED(renderOutput); PX_UNUSED(pairData); PX_UNUSED(lowFidelity);
 				return false;
 			}
 

@@ -35,6 +35,8 @@
 #include "GuContactMethodImpl.h"
 #include "GuPCMContactGenUtil.h"
 
+#define PCM_GRAZING_CONTACT_FILTER 1
+
 using namespace physx;
 using namespace Gu;
 using namespace aos;
@@ -329,8 +331,10 @@ static void calculateContacts(const FloatVArg extentX_, const FloatVArg extentY_
 	}
 }
 
-static PxU32 doBoxBoxGenerateContacts(const Vec3VArg box0Extent, const Vec3VArg box1Extent, const PxMatTransformV& transform0, const PxMatTransformV& transform1, const FloatVArg contactDist, PersistentContact* manifoldContacts, PxU32& numContacts)
+static PxU32 doBoxBoxGenerateContacts(const Vec3VArg box0Extent, const Vec3VArg box1Extent, const PxMatTransformV& transform0, const PxMatTransformV& transform1, const FloatVArg contactDist, PersistentContact* manifoldContacts, PxU32& numContacts, bool grazingCheck, bool& outGrazingContact, float& outMinOverlap)
 {
+	outGrazingContact = false;
+
 	const FloatV ea0 = V3GetX(box0Extent);
 	const FloatV ea1 = V3GetY(box0Extent);
 	const FloatV ea2 = V3GetZ(box0Extent);
@@ -631,6 +635,55 @@ static PxU32 doBoxBoxGenerateContacts(const Vec3VArg box0Extent, const Vec3VArg 
 		}
 	}
 
+	FStore(minOverlap, &outMinOverlap);
+
+#if PCM_GRAZING_CONTACT_FILTER
+	// Flags manifolds where a non-winning axis nearly separates (seam-grazing suspect).
+	if(grazingCheck)
+	{
+		const Vec3V axes[6] = {
+			transform0.getCol0(), transform0.getCol1(), transform0.getCol2(),
+			transform1.getCol0(), transform1.getCol1(), transform1.getCol2()
+		};
+
+		PxVec3 featureNormalW;
+		V3StoreU(axes[feature], featureNormalW);
+
+		float contactDistF;
+		FStore(contactDist, &contactDistF);
+
+		PxVec3 b0e, b1e;
+		V3StoreU(box0Extent, b0e);
+		V3StoreU(box1Extent, b1e);
+		const float minSideLength = PxMin(
+			PxMin(b0e.x, PxMin(b0e.y, b0e.z)),
+			PxMin(b1e.x, PxMin(b1e.y, b1e.z))) * 2.0f;
+		const float grazingThreshold = contactDistF + PxMin(contactDistF * 0.4f, minSideLength * 0.4f);
+
+		for(PxU32 i = 0; i < 6; ++i)
+		{
+			if(i == feature)
+				continue;
+
+			PxVec3 axisNormalW;
+			V3StoreU(axes[i], axisNormalW);
+
+			// Skip axes similar to the contact normal (|dot| > cos(20 deg) ≈ 0.940)
+			if(PxAbs(featureNormalW.dot(axisNormalW)) > 0.940f)
+				continue;
+
+			float overlapF;
+			FStore(overlap[i], &overlapF);
+
+			if(overlapF < grazingThreshold)
+			{
+				outGrazingContact = true;
+				break;
+			}
+		}
+	}
+#endif
+
 	PxMatTransformV newTransformV;
 	const Vec3V axis00 = transform0.getCol0();
 	const Vec3V axis01 = transform0.getCol1();
@@ -902,8 +955,20 @@ bool Gu::pcmContactBoxBox(GU_CONTACT_METHOD_ARGS)
 		PersistentContact* manifoldContacts = PX_CP_TO_PCP(contactBuffer.contacts);
 		PxU32 numContacts = 0;
 	
-		if(doBoxBoxGenerateContacts(boxExtents0, boxExtents1, transfV0, transfV1, contactDist, manifoldContacts, numContacts)) 
+		bool grazingContact = false;
+		float satMinOverlap = 0.0f;
+		const bool generateResult = doBoxBoxGenerateContacts(boxExtents0, boxExtents1, transfV0, transfV1, contactDist, manifoldContacts, numContacts, !contactBuffer.lowFidelity, grazingContact, satMinOverlap);
+
+		if(!generateResult)
 		{
+			manifold.clearManifold();
+		}
+		else
+		{
+			// Detection only flags; classification/correction happens in the brick compound layer.
+			if(grazingContact)
+				contactBuffer.grazingSuspect = true;
+
 			if(numContacts > 0)
 			{
 				manifold.addBatchManifoldContacts(manifoldContacts, numContacts, toleranceLength);
@@ -914,7 +979,7 @@ bool Gu::pcmContactBoxBox(GU_CONTACT_METHOD_ARGS)
 #endif
 				return true;
 			}
-			else
+			else if(satMinOverlap > params.mContactDistance * 2.0f) // Only run GJK fallback for deep overlaps, not degenerate edge contacts
 			{
 				const Vec3V zeroV = V3Zero();
 				const BoxV box0(zeroV, boxExtents0);

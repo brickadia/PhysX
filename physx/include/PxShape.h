@@ -111,7 +111,10 @@ struct PxShapeFlag
 
 		\see PxScene.getRenderBuffer() PxRenderBuffer PxVisualizationParameter
 		*/
-		eVISUALIZATION					= (1<<3)
+		eVISUALIZATION					= (1<<3),
+
+		/** BR: pairs involving this shape skip optional contact-quality work (grazing-suspect detection). */
+		eLOW_FIDELITY_CONTACTS			= (1<<4)
 	};
 };
 

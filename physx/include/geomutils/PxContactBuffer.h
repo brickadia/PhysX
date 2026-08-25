@@ -42,15 +42,21 @@ namespace physx
 	{
 	public:
 
-		static const PxU32 MAX_CONTACTS = 255;
+		static const PxU32 MAX_CONTACTS = 254;
 
 		PxContactPoint	contacts[MAX_CONTACTS];
 		PxU32			count;
-		PxU32			pad;
+		// Set by PCM contact gen when a non-winning SAT axis nearly separates (seam-grazing suspect manifold).
+		bool			grazingSuspect;
+		// Input: set after reset() by the pair dispatcher; PCM contact gen skips grazing-suspect detection.
+		bool			lowFidelity;
+		PxU8			pad[2];
 
 		PX_FORCE_INLINE void reset()
 		{
 			count = 0;
+			grazingSuspect = false;
+			lowFidelity = false;
 		}
 
 		PX_FORCE_INLINE bool contact(const PxVec3& worldPoint, const PxVec3& worldNormalIn, PxReal separation, PxU32 faceIndex1 = PXC_CONTACT_NO_FACE_INDEX)
