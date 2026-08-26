@@ -21,8 +21,8 @@ $env:PM_PACKAGES_ROOT = "$PhysXRoot\packages"
 # Set up environment before resolving presets
 if ($Platform -eq 'Win64') {
     $env:LLVMInstallDir = 'C:/Program Files/LLVM'
-    $env:LLVMToolsVersion = '22.1.6'
-    $env:LLVMIncludeVersion = '22'
+    $env:LLVMToolsVersion = '23.1.0'
+    $env:LLVMIncludeVersion = '23'
 
     # Set up VS developer environment so CMake can find cl.exe for Ninja
     $VsInstallPath = & $VsWhere -version '[18.0,19.0)' -products * -property installationPath -nologo | Select-Object -First 1

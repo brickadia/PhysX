@@ -42,8 +42,8 @@ switch ($Platform) {
 
         # LLVM for Clang builds
         $env:LLVMInstallDir = 'C:/Program Files/LLVM'
-        $env:LLVMToolsVersion = '22.1.6'
-        $env:LLVMIncludeVersion = '22'
+        $env:LLVMToolsVersion = '23.1.0'
+        $env:LLVMIncludeVersion = '23'
 
         $DynamicConfigs = @($Configs | Where-Object { $_ -in @('debug', 'checked', 'profile') })
         if ($DynamicConfigs.Count -gt 0) {
